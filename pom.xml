@@ -11,8 +11,8 @@
 
 	<artifactId>keycloak-oauth</artifactId>
 	<version>0.1-SNAPSHOT</version>
-	<name>keycloak Authentication plugin</name>
-	<description>A Jenkins authentication plugin that delegates to keycloak</description>
+	<name>Keycloak Authentication plugin</name>
+	<description>A plugin to incorporate SSO into Jenkins using Keycloak</description>
 	<packaging>hpi</packaging>
 
 	<url>http://wiki.jenkins-ci.org/display/JENKINS/Keycloak+OAuth+Plugin</url>
