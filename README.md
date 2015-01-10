@@ -1,6 +1,6 @@
 # Keycloak OAuth Plugin
 
-![JenkinsKeycloakImage]
+ ![Keycloak Jenkins](https://raw.githubusercontent.com/mnadeem/jenkins-keycloak-plugin/master/jk.png)
 
 Read More about [this](https://wiki.jenkins-ci.org/display/JENKINS/keycloak-oauth-plugin) plugin 
 
@@ -23,5 +23,3 @@ Execute the following
 	mvn hpi:run -Djetty.port=8090 -Dhpi.prefix=/jenkins
 
 For more details refer the [official site](https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial)
-
-[JenkinsKeycloakImage] : https://raw.githubusercontent.com/mnadeem/jenkins-keycloak-plugin/master/jk.png "Keycloak OAuth"
