@@ -87,9 +87,8 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	public KeycloakSecurityRealm(String keycloakJson) throws IOException {
 		super();
 		this.keycloakJson = Util.fixEmptyAndTrim(keycloakJson);
-		AdapterConfig adapterConfig = JsonSerialization.readValue(keycloakJson, AdapterConfig.class);
+		AdapterConfig adapterConfig = JsonSerialization.readValue(this.keycloakJson, AdapterConfig.class);
 		this.oAuthClient = ServletOAuthClientBuilder.build(adapterConfig);
-		this.oAuthClient.setScope("username,name,email");
 		this.oAuthClient.start();
 	}
 
