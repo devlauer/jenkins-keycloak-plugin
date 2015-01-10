@@ -5,7 +5,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 	<f:section title="Global Keycloak OAuth Settings" >
 		<f:entry title="Keycloak JSON"  field="keycloakJson" help="/plugin/keycloak-oauth/help/auth/keycloak-help.html">
-			<f:textarea default="https://github.com" />
+			<f:textarea default="{'realm':'demo','realm-public-key':'[public key]','auth-server-url':'http://localhost:8080/auth','ssl-required':'external','resource':'jenkins','credentials':{'secret':'[Your secret]'}}" />
 		</f:entry>
 	</f:section>
 </j:jelly>

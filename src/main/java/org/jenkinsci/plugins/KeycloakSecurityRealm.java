@@ -37,15 +37,14 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.ServletException;
-
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.context.SecurityContextHolder;
-import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
 import org.keycloak.adapters.ServerRequest.HttpFailure;
+import org.keycloak.jose.jws.JWSInput;
+import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.AccessTokenResponse;
 import org.keycloak.representations.IDToken;
 import org.keycloak.representations.adapters.config.AdapterConfig;
@@ -71,6 +70,9 @@ import org.kohsuke.stapler.StaplerResponse;
  */
 public class KeycloakSecurityRealm extends SecurityRealm {
 
+	private static final String JENKINS_LOGIN_URL = "securityRealm/commenceLogin";
+	private static final String JENKINS_LOG_OUT_URL = "securityRealm/finishLogin";
+
 	/**
 	 * Logger for debugging purposes.
 	 */
@@ -78,42 +80,22 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
     private static final String REFERER_ATTRIBUTE = KeycloakSecurityRealm.class.getName()+".referer";
 
+	private ServletOAuthClient oAuthClient;
 	private String keycloakJson;
-	private ServletOAuthClient client;
 
-	/**
-	 * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
-	 *                     including the protocol (e.g. https).
-	 * @param githubApiUri The URI to the root of the API for GitHub or GitHub Enterprise,
-	 *                     including the protocol (e.g. https).
-	 * @param clientID The client ID for the created OAuth Application.
-	 * @param clientSecret The client secret for the created GitHub OAuth Application.
-	 * @throws IOException 
-	 */
 	@DataBoundConstructor
 	public KeycloakSecurityRealm(String keycloakJson) throws IOException {
 		super();
-		LOGGER.info(keycloakJson);
 		this.keycloakJson = Util.fixEmptyAndTrim(keycloakJson);
 		AdapterConfig adapterConfig = JsonSerialization.readValue(keycloakJson, AdapterConfig.class);
-		this.client = ServletOAuthClientBuilder.build(adapterConfig);
-		this.client.start();
-	}
-
-	public String getKeycloakJson() {
-		return keycloakJson;
-	}
-
-	public void setKeycloakJson(String keycloakJson) {
-		this.keycloakJson = keycloakJson;
+		this.oAuthClient = ServletOAuthClientBuilder.build(adapterConfig);
+		this.oAuthClient.start();
 	}
 
 	public void doCommenceLogin(StaplerRequest request, StaplerResponse response, @Header("Referer") final String referer)
 			throws IOException {
-
-		LOGGER.info("doCommenceLogin");
-		request.getSession().setAttribute(REFERER_ATTRIBUTE,referer);
-		this.client.redirectRelative("securityRealm/finishLogin", request, response);
+		request.getSession().setAttribute(REFERER_ATTRIBUTE, referer);
+		this.oAuthClient.redirectRelative(JENKINS_LOG_OUT_URL, request, response);
 	}
 
 	/**
@@ -123,25 +105,17 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	public HttpResponse doFinishLogin(StaplerRequest request)
 			throws IOException {
 
-		String code = request.getParameter("code");
-		LOGGER.info("code = " +code);
-		if (code == null || code.trim().length() == 0) {
-			LOGGER.info("doFinishLogin: missing code.");
-			return HttpResponses.redirectToContextRoot();
-		}
-
 		try {
-			AccessTokenResponse accessToken = this.client.getBearerToken(request);
+			AccessTokenResponse accessToken = this.oAuthClient.getBearerToken(request);
 			 if (accessToken.getIdToken() != null) {
 		            IDToken idToken = ServletOAuthClient.extractIdToken(accessToken.getIdToken());
+					SecurityContextHolder.getContext().setAuthentication(new KeycloakAuthentication(idToken, extractAccessToken(accessToken.getToken())));
 
-					SecurityContextHolder.getContext().setAuthentication(new KeycloakAuthentication(idToken));
+					User currentUser = User.current();
+					currentUser.setFullName(idToken.getPreferredUsername());
 
-					User u = User.current();
-					u.setFullName(idToken.getPreferredUsername());
-
-				    if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
-					    u.addProperty(new Mailer.UserProperty(idToken.getEmail()));
+				    if (!currentUser.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
+					    currentUser.addProperty(new Mailer.UserProperty(idToken.getEmail()));
 				    }
 			} else {
 				LOGGER.info("keycloak did not return an access token.");
@@ -155,6 +129,16 @@ public class KeycloakSecurityRealm extends SecurityRealm {
         	return HttpResponses.redirectTo(referer);
         }
 		return HttpResponses.redirectToContextRoot();
+	}
+	
+	private AccessToken extractAccessToken(String accessToken) {
+		if (accessToken == null) return null;
+        JWSInput input = new JWSInput(accessToken);
+        try {
+        	return input.readJsonContent(AccessToken.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 	}
 
 	/*
@@ -172,7 +156,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
         return new SecurityComponents(
             new AuthenticationManager() {
                 public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-                    if (authentication instanceof AnonymousAuthenticationToken)
+                    if (authentication instanceof KeycloakAuthentication)
                         return authentication;
                     throw new BadCredentialsException("Unexpected authentication type: " + authentication);
                 }
@@ -182,12 +166,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 	@Override
 	public String getLoginUrl() {
-		return "securityRealm/commenceLogin";
-	}
-	
-	@Override
-	public void doLogout(StaplerRequest req, StaplerResponse rsp)throws IOException, ServletException {
-		super.doLogout(req, rsp);
+		return JENKINS_LOGIN_URL;
 	}
 
 	@Extension
@@ -211,4 +190,12 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 			super(clazz);
 		}
 	}
+
+	public String getKeycloakJson() {
+		return keycloakJson;
+	}
+
+	public void setKeycloakJson(String keycloakJson) {
+		this.keycloakJson = keycloakJson;
+	}	
 }

@@ -2,7 +2,6 @@
 
  ![Keycloak Jenkins](https://raw.githubusercontent.com/mnadeem/jenkins-keycloak-plugin/master/jk.png)
 
-Read More about [this](https://wiki.jenkins-ci.org/display/JENKINS/keycloak-oauth-plugin) plugin 
 
 This plugin incorporates SSO in [Jenkins](http://jenkins-ci.org) with [Keycloak](http://keycloak.jboss.org/)
 
