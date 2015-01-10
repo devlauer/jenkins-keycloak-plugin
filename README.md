@@ -24,4 +24,4 @@ Execute the following
 
 For more details refer the [official site](https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial)
 
-	[JenkinsKeycloakImage]: https://raw.githubusercontent.com/mnadeem/jenkins-keycloak-plugin/master/jk.png "Keycloak OAuth"
+[JenkinsKeycloakImage] : https://raw.githubusercontent.com/mnadeem/jenkins-keycloak-plugin/master/jk.png "Keycloak OAuth"
