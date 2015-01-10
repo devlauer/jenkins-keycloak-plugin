@@ -23,3 +23,6 @@ Execute the following
 	mvn hpi:run -Djetty.port=8090 -Dhpi.prefix=/jenkins
 
 For more details refer the [official site](https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial)
+
+:+1: :snowflake:
+/play rollout
