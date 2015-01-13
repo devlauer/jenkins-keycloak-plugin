@@ -31,6 +31,7 @@ For more details refer the [official site](https://wiki.jenkins-ci.org/display/J
 TODO
 ---
 :white_check_mark: SSO Support
+
 :white_check_mark: Authorization support
 
 Nice images are from [Emoji](http://www.emoji-cheat-sheet.com/):copyright:
