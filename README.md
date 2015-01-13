@@ -11,11 +11,11 @@ For usage information please refer the offical [wiki page](https://wiki.jenkins-
 
 Building From Source
 ---
-:pushpin: Checkout or download the source code from the latest tag on [GitHub](https://github.com/mnadeem/jenkins-keycloak-plugin).
+:white_check_mark: Checkout or download the source code from the latest tag on [GitHub](https://github.com/mnadeem/jenkins-keycloak-plugin).
 
-:pushpin: Execute `mvn clean verify` from your local source code folder (install [Maven](http://maven.apache.org) if not already done).
+:white_check_mark: Execute `mvn clean verify` from your local source code folder (install [Maven](http://maven.apache.org) if not already done).
 
-:pushpin: Find the `keycloak.hpi` file in the `target` subfolder.
+:white_check_mark: Find the `keycloak.hpi` file in the `target` subfolder.
 
 
 Testing The Plugin
@@ -30,8 +30,8 @@ For more details refer the [official site](https://wiki.jenkins-ci.org/display/J
 
 TODO
 ---
-:white_check_mark: SSO Support
+:pushpin: SSO Support
 
-:white_check_mark: Authorization support
+:pushpin: Authorization support
 
 Nice images are from [Emoji](http://www.emoji-cheat-sheet.com/):copyright:
