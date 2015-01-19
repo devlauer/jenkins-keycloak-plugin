@@ -55,6 +55,11 @@
 
 	<dependencies>
 
+          <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>jboss-logging</artifactId>
+            <version>${jboss.logging.version}</version>
+        </dependency>
 		<dependency>
             <groupId>net.iharder</groupId>
             <artifactId>base64</artifactId>
@@ -300,5 +305,6 @@
 		<httpcomponents.version>4.2.1</httpcomponents.version>
 		<bouncycastle.version>1.46</bouncycastle.version>
 		<jackson.version>1.9.9</jackson.version>
+		<jboss.logging.version>3.1.4.GA</jboss.logging.version>
 	</properties>
 </project>

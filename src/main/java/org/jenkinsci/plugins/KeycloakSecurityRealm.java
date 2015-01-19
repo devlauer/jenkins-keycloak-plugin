@@ -27,13 +27,13 @@ THE SOFTWARE.
 package org.jenkinsci.plugins;
 
 import hudson.Extension;
-import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.User;
 import hudson.security.SecurityRealm;
 import hudson.tasks.Mailer;
 
 import java.io.IOException;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,17 +42,23 @@ import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.keycloak.OAuth2Constants;
+import org.keycloak.RSATokenVerifier;
+import org.keycloak.VerificationException;
+import org.keycloak.adapters.KeycloakDeployment;
+import org.keycloak.adapters.KeycloakDeploymentBuilder;
+import org.keycloak.adapters.ServerRequest;
 import org.keycloak.adapters.ServerRequest.HttpFailure;
 import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.AccessTokenResponse;
 import org.keycloak.representations.IDToken;
 import org.keycloak.representations.adapters.config.AdapterConfig;
-import org.keycloak.servlet.ServletOAuthClient;
-import org.keycloak.servlet.ServletOAuthClientBuilder;
 import org.keycloak.util.JsonSerialization;
+import org.keycloak.util.KeycloakUriBuilder;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
+import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest;
@@ -73,73 +79,88 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	private static final String JENKINS_LOGIN_URL = "securityRealm/commenceLogin";
 	private static final String JENKINS_LOG_OUT_URL = "securityRealm/finishLogin";
 
-	/**
-	 * Logger for debugging purposes.
-	 */
 	private static final Logger LOGGER = Logger.getLogger(KeycloakSecurityRealm.class.getName());
 
-    private static final String REFERER_ATTRIBUTE = KeycloakSecurityRealm.class.getName()+".referer";
+	private static final String REFERER_ATTRIBUTE = KeycloakSecurityRealm.class.getName() + ".referer";
 
-	private ServletOAuthClient oAuthClient;
-	private String keycloakJson;
+	private KeycloakDeployment keycloakDeployment;
 
 	@DataBoundConstructor
 	public KeycloakSecurityRealm(String keycloakJson) throws IOException {
 		super();
-		LOGGER.info("******* " + keycloakJson);
-		this.keycloakJson = Util.fixEmptyAndTrim(keycloakJson);
-		AdapterConfig adapterConfig = JsonSerialization.readValue(this.keycloakJson, AdapterConfig.class);
-		this.oAuthClient = ServletOAuthClientBuilder.build(adapterConfig);
-		this.oAuthClient.start();
+
+		AdapterConfig adapterConfig = JsonSerialization.readValue(keycloakJson, AdapterConfig.class);
+		keycloakDeployment = KeycloakDeploymentBuilder.build(adapterConfig);
 	}
 
-	public void doCommenceLogin(StaplerRequest request, StaplerResponse response, @Header("Referer") final String referer)
+	public HttpResponse doCommenceLogin(StaplerRequest request, StaplerResponse response, @Header("Referer") final String referer)
 			throws IOException {
 		request.getSession().setAttribute(REFERER_ATTRIBUTE, referer);
-		this.oAuthClient.redirectRelative(JENKINS_LOG_OUT_URL, request, response);
+
+		String redirect = redirectUrl(request);
+
+		String state = UUID.randomUUID().toString();
+
+		String authUrl = keycloakDeployment.getAuthUrl().clone()
+				.queryParam(OAuth2Constants.CLIENT_ID, keycloakDeployment.getResourceName())
+				.queryParam(OAuth2Constants.REDIRECT_URI, redirect)
+				.queryParam(OAuth2Constants.STATE, state)
+				.build().toString();
+
+		return new HttpRedirect(authUrl);	        
+
+	}
+
+	private String redirectUrl(StaplerRequest request) {
+		KeycloakUriBuilder builder = KeycloakUriBuilder.fromUri(request.getRequestURL().toString())
+				.replacePath(request.getContextPath())
+				.replaceQuery(null)
+				.path(JENKINS_LOG_OUT_URL);
+		String redirect = builder.toTemplate();
+		return redirect;
 	}
 
 	/**
 	 * This is where the user comes back to at the end of the OpenID redirect
 	 * ping-pong.
+	 * @throws HttpFailure 
+	 * @throws VerificationException 
 	 */
-	public HttpResponse doFinishLogin(StaplerRequest request)
-			throws IOException {
+	public HttpResponse doFinishLogin(StaplerRequest request)  {
+
+		String redirect = redirectUrl(request);
 
 		try {
-			AccessTokenResponse accessToken = this.oAuthClient.getBearerToken(request);
-			 if (accessToken.getIdToken() != null) {
-		            IDToken idToken = ServletOAuthClient.extractIdToken(accessToken.getIdToken());
-					SecurityContextHolder.getContext().setAuthentication(new KeycloakAuthentication(idToken, extractAccessToken(accessToken.getToken())));
 
-					User currentUser = User.current();
-					currentUser.setFullName(idToken.getPreferredUsername());
+			AccessTokenResponse tokenResponse = ServerRequest.invokeAccessCodeToToken(keycloakDeployment, request.getParameter("code"), redirect, null);
 
-				    if (!currentUser.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
-					    currentUser.addProperty(new Mailer.UserProperty(idToken.getEmail()));
-				    }
-			} else {
-				LOGGER.info("keycloak did not return an access token.");
+			String tokenString = tokenResponse.getToken();
+			String idTokenString = tokenResponse.getIdToken();
+
+			AccessToken token = RSATokenVerifier.verifyToken(tokenString, keycloakDeployment.getRealmKey(), keycloakDeployment.getRealm());
+			if (idTokenString != null) {
+				JWSInput input = new JWSInput(idTokenString);
+
+				IDToken idToken = input.readJsonContent(IDToken.class);
+				SecurityContextHolder.getContext().setAuthentication(new KeycloakAuthentication(idToken, token));
+
+				User currentUser = User.current();
+				currentUser.setFullName(idToken.getPreferredUsername());
+
+				if (!currentUser.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
+					currentUser.addProperty(new Mailer.UserProperty(idToken.getEmail()));
+				}	 	         
 			}
-		} catch (HttpFailure e) {
-			LOGGER.log(Level.SEVERE, "HttpFailure ", e);
-		}		
 
-        String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
-        if (referer!=null) {
-        	return HttpResponses.redirectTo(referer);
-        }
+		} catch (Exception e) {
+			LOGGER.log(Level.SEVERE, "Authentication Exception ", e);
+		}	       
+
+		String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
+		if (referer!=null) {
+			return HttpResponses.redirectTo(referer);
+		}
 		return HttpResponses.redirectToContextRoot();
-	}
-	
-	private AccessToken extractAccessToken(String accessToken) {
-		if (accessToken == null) return null;
-        JWSInput input = new JWSInput(accessToken);
-        try {
-        	return input.readJsonContent(AccessToken.class);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
 	}
 
 	/*
@@ -153,17 +174,17 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	}
 
 	@Override
-    public SecurityComponents createSecurityComponents() {
-        return new SecurityComponents(
-            new AuthenticationManager() {
-                public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-                    if (authentication instanceof KeycloakAuthentication)
-                        return authentication;
-                    throw new BadCredentialsException("Unexpected authentication type: " + authentication);
-                }
-            }
-        );
-    }
+	public SecurityComponents createSecurityComponents() {
+		return new SecurityComponents(
+				new AuthenticationManager() {
+					public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+						if (authentication instanceof KeycloakAuthentication)
+							return authentication;
+						throw new BadCredentialsException("Unexpected authentication type: " + authentication);
+					}
+				}
+				);
+	}
 
 	@Override
 	public String getLoginUrl() {
@@ -191,12 +212,4 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 			super(clazz);
 		}
 	}
-
-	public String getKeycloakJson() {
-		return keycloakJson;
-	}
-
-	public void setKeycloakJson(String keycloakJson) {
-		this.keycloakJson = keycloakJson;
-	}	
 }
