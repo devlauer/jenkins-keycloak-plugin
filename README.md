@@ -7,7 +7,7 @@ This plugin incorporates SSO in [Jenkins](http://jenkins-ci.org) with [Keycloak]
 
 Usage
 ---
-For usage information please refer the offical [wiki page](https://wiki.jenkins-ci.org/display/JENKINS/keycloak-oauth-plugin)
+For usage information please refer the offical [wiki page](https://wiki.jenkins-ci.org/display/JENKINS/keycloak-plugin)
 
 Building From Source
 ---
