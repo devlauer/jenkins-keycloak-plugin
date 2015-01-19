@@ -9,7 +9,7 @@
 			against? -->
 	</parent>
 
-	<artifactId>keycloak-oauth</artifactId>
+	<artifactId>keycloak</artifactId>
 	<version>0.1-SNAPSHOT</version>
 	<name>Keycloak Authentication plugin</name>
 	<description>A plugin to incorporate SSO into Jenkins using Keycloak</description>

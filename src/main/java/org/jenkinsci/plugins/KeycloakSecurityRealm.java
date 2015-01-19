@@ -86,6 +86,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	@DataBoundConstructor
 	public KeycloakSecurityRealm(String keycloakJson) throws IOException {
 		super();
+		LOGGER.info("******* " + keycloakJson);
 		this.keycloakJson = Util.fixEmptyAndTrim(keycloakJson);
 		AdapterConfig adapterConfig = JsonSerialization.readValue(this.keycloakJson, AdapterConfig.class);
 		this.oAuthClient = ServletOAuthClientBuilder.build(adapterConfig);
@@ -174,7 +175,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 		@Override
 		public String getHelpFile() {
-			return "/plugin/keycloak-oauth/help/help-security-realm.html";
+			return "/plugin/keycloak/help/help-security-realm.html";
 		}
 
 		@Override
