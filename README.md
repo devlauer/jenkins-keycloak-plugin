@@ -30,7 +30,6 @@ For more details refer the [official site](https://wiki.jenkins-ci.org/display/J
 
 TODO
 ---
-:pushpin: SSO Support
 
 :pushpin: Authorization support
 
