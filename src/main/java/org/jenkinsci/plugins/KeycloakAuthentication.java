@@ -20,10 +20,12 @@ public class KeycloakAuthentication extends AbstractAuthenticationToken  {
 
 	private static final long serialVersionUID = 1L;
 	private final String userName;
+	private String refreashToken;
 	
-	public KeycloakAuthentication(IDToken idToken, AccessToken accessToken) {
+	public KeycloakAuthentication(IDToken idToken, AccessToken accessToken, String refreashToken) {
 		super(buildRoles(accessToken));
 		this.userName = idToken.getName();
+		this.refreashToken = refreashToken;
 		setAuthenticated(true);
 	}
 
@@ -52,5 +54,9 @@ public class KeycloakAuthentication extends AbstractAuthenticationToken  {
 	@Override
 	public Object getPrincipal() {
 		return this.userName;
+	}
+
+	public String getRefreashToken() {
+		return refreashToken;
 	}
 }

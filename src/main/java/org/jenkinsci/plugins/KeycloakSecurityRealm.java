@@ -37,6 +37,8 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.ServletException;
+
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
@@ -136,13 +138,14 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 			String tokenString = tokenResponse.getToken();
 			String idTokenString = tokenResponse.getIdToken();
+			String refreashToken = tokenResponse.getRefreshToken();
 
 			AccessToken token = RSATokenVerifier.verifyToken(tokenString, keycloakDeployment.getRealmKey(), keycloakDeployment.getRealm());
 			if (idTokenString != null) {
 				JWSInput input = new JWSInput(idTokenString);
 
 				IDToken idToken = input.readJsonContent(IDToken.class);
-				SecurityContextHolder.getContext().setAuthentication(new KeycloakAuthentication(idToken, token));
+				SecurityContextHolder.getContext().setAuthentication(new KeycloakAuthentication(idToken, token, refreashToken));
 
 				User currentUser = User.current();
 				currentUser.setFullName(idToken.getPreferredUsername());
@@ -189,6 +192,18 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	@Override
 	public String getLoginUrl() {
 		return JENKINS_LOGIN_URL;
+	}
+	
+	@Override
+	public void doLogout(StaplerRequest req, StaplerResponse rsp)
+			throws IOException, ServletException {
+		KeycloakAuthentication keycloakAuthentication = (KeycloakAuthentication) SecurityContextHolder.getContext().getAuthentication();
+		try {
+			ServerRequest.invokeLogout(this.keycloakDeployment, keycloakAuthentication.getRefreashToken());
+			super.doLogout(req, rsp);
+		} catch (HttpFailure e) {
+			LOGGER.log(Level.SEVERE, "Logout Exception ", e);
+		}		
 	}
 
 	@Extension
