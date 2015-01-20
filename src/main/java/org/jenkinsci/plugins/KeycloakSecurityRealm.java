@@ -86,11 +86,12 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	private static final String REFERER_ATTRIBUTE = KeycloakSecurityRealm.class.getName() + ".referer";
 
 	private KeycloakDeployment keycloakDeployment;
+	private String keycloakJson;
 
 	@DataBoundConstructor
 	public KeycloakSecurityRealm(String keycloakJson) throws IOException {
 		super();
-
+		this.keycloakJson = keycloakJson;
 		AdapterConfig adapterConfig = JsonSerialization.readValue(keycloakJson, AdapterConfig.class);
 		keycloakDeployment = KeycloakDeploymentBuilder.build(adapterConfig);
 	}
@@ -227,4 +228,12 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 			super(clazz);
 		}
 	}
+
+	public String getKeycloakJson() {
+		return keycloakJson;
+	}
+
+	public void setKeycloakJson(String keycloakJson) {
+		this.keycloakJson = keycloakJson;
+	}	
 }
