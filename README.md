@@ -34,3 +34,5 @@ TODO
 :pushpin: Authorization support
 
 Nice images are from [Emoji](http://www.emoji-cheat-sheet.com/):copyright:
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/mnadeem/jenkins-keycloak-plugin/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
