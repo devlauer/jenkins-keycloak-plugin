@@ -26,12 +26,6 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
-import hudson.Extension;
-import hudson.model.Descriptor;
-import hudson.model.User;
-import hudson.security.SecurityRealm;
-import hudson.tasks.Mailer;
-
 import java.io.IOException;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -46,18 +40,18 @@ import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.RSATokenVerifier;
-import org.keycloak.VerificationException;
 import org.keycloak.adapters.KeycloakDeployment;
 import org.keycloak.adapters.KeycloakDeploymentBuilder;
 import org.keycloak.adapters.ServerRequest;
 import org.keycloak.adapters.ServerRequest.HttpFailure;
+import org.keycloak.common.VerificationException;
+import org.keycloak.common.util.KeycloakUriBuilder;
 import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.AccessTokenResponse;
 import org.keycloak.representations.IDToken;
 import org.keycloak.representations.adapters.config.AdapterConfig;
 import org.keycloak.util.JsonSerialization;
-import org.keycloak.util.KeycloakUriBuilder;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
@@ -65,6 +59,12 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+
+import hudson.Extension;
+import hudson.model.Descriptor;
+import hudson.model.User;
+import hudson.security.SecurityRealm;
+import hudson.tasks.Mailer;
 
 /**
  *
@@ -108,6 +108,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 				.queryParam(OAuth2Constants.CLIENT_ID, keycloakDeployment.getResourceName())
 				.queryParam(OAuth2Constants.REDIRECT_URI, redirect)
 				.queryParam(OAuth2Constants.STATE, state)
+				.queryParam(OAuth2Constants.RESPONSE_TYPE, "code")
 				.build().toString();
 
 		return new HttpRedirect(authUrl);	        
@@ -140,8 +141,8 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 			String tokenString = tokenResponse.getToken();
 			String idTokenString = tokenResponse.getIdToken();
 			String refreashToken = tokenResponse.getRefreshToken();
-
-			AccessToken token = RSATokenVerifier.verifyToken(tokenString, keycloakDeployment.getRealmKey(), keycloakDeployment.getRealm());
+	
+			AccessToken token = RSATokenVerifier.verifyToken(tokenString, keycloakDeployment.getRealmKey(), keycloakDeployment.getRealmInfoUrl());
 			if (idTokenString != null) {
 				JWSInput input = new JWSInput(idTokenString);
 
@@ -149,7 +150,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 				SecurityContextHolder.getContext().setAuthentication(new KeycloakAuthentication(idToken, token, refreashToken));
 
 				User currentUser = User.current();
-				currentUser.setFullName(idToken.getPreferredUsername());
+				currentUser.setFullName(idToken.getName());
 
 				if (!currentUser.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
 					currentUser.addProperty(new Mailer.UserProperty(idToken.getEmail()));
