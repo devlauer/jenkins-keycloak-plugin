@@ -202,10 +202,10 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		KeycloakAuthentication keycloakAuthentication = (KeycloakAuthentication) SecurityContextHolder.getContext().getAuthentication();
 		try {
 			ServerRequest.invokeLogout(this.keycloakDeployment, keycloakAuthentication.getRefreashToken());
-			super.doLogout(req, rsp);
 		} catch (HttpFailure e) {
 			LOGGER.log(Level.SEVERE, "Logout Exception ", e);
 		}		
+		super.doLogout(req, rsp);
 	}
 
 	@Extension
