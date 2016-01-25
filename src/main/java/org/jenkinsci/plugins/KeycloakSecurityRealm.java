@@ -199,12 +199,15 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	@Override
 	public void doLogout(StaplerRequest req, StaplerResponse rsp)
 			throws IOException, ServletException {
-		KeycloakAuthentication keycloakAuthentication = (KeycloakAuthentication) SecurityContextHolder.getContext().getAuthentication();
-		try {
-			ServerRequest.invokeLogout(this.keycloakDeployment, keycloakAuthentication.getRefreashToken());
-		} catch (HttpFailure e) {
-			LOGGER.log(Level.SEVERE, "Logout Exception ", e);
-		}		
+		final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if(authentication instanceof KeycloakAuthentication) {
+			KeycloakAuthentication keycloakAuthentication = (KeycloakAuthentication)authentication;
+			try {
+				ServerRequest.invokeLogout(this.keycloakDeployment, keycloakAuthentication.getRefreashToken());
+			} catch (HttpFailure e) {
+				LOGGER.log(Level.SEVERE, "Keycloak Logout Exception", e);
+			}		
+		}
 		super.doLogout(req, rsp);
 	}
 
