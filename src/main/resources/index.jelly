@@ -1,4 +1,5 @@
 
+<?jelly escape-by-default='true'?> 
 <div>
   This is the authentication plugin using keycloak OAuth.
 </div>
