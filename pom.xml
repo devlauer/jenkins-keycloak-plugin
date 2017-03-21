@@ -51,9 +51,9 @@
 	</developers>
 
 	<scm>
-		<connection>scm:git:ssh://github.com/keycloak/keycloak-oauth-plugin.git</connection>
-		<developerConnection>scm:git:ssh://git@github.com/keycloak/keycloak-oauth-plugin.git</developerConnection>
-		<url>https://github.com/keycloak/keycloak-oauth-plugin</url>
+		<connection>scm:git:ssh://github.com/devlauer/jenkins-keycloak-plugin.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com/devlauer/jenkins-keycloak-plugin.git</developerConnection>
+		<url>https://github.com/devlauer/jenkins-keycloak-plugin</url>
 	</scm>
 
 	<!-- Use repositories suggested in plugin tutorial: https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial -->
