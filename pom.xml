@@ -9,7 +9,8 @@
 			against? -->
 	</parent>
 
-	<artifactId>keycloak</artifactId>
+	<groupId>de.elnarion.jenkins.plugins</groupId>
+	<artifactId>jenkins-keycloak-plugin</artifactId>
 	<version>0.1-SNAPSHOT</version>
 	<name>Keycloak Authentication plugin</name>
 	<description>A plugin to incorporate SSO into Jenkins using Keycloak</description>
@@ -20,7 +21,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<keycloak.version>2.5.1.Final</keycloak.version>
+		<keycloak.version>2.5.4.Final</keycloak.version>
 		<httpcomponents.version>4.5</httpcomponents.version>
 		<bouncycastle.version>1.52</bouncycastle.version>
 		<jackson.version>2.5.4</jackson.version>
@@ -319,5 +320,12 @@
 			</plugins>
 		</pluginManagement>
 	</build>
+
+	<distributionManagement>
+		<repository>
+			<id>bintray-repo-maven-de.elnarion.jenkins.plugins.jenkins-keycloak-plugin</id>
+			<url>https://bintray.com/devlauer/devlauer.mvn/de.elnarion.jenkins.plugins.jenkins-keycloak-plugin/;publish=1</url>
+		</repository>
+	</distributionManagement>
 
 </project>
