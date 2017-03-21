@@ -87,17 +87,18 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 	private static final String REFERER_ATTRIBUTE = KeycloakSecurityRealm.class.getName() + ".referer";
 
-	private KeycloakDeployment keycloakDeployment;
+	private transient KeycloakDeployment keycloakDeployment;
 	private String keycloakJson;
 
 	@DataBoundConstructor
 	public KeycloakSecurityRealm(String keycloakJson) throws IOException {
 		super();
 		this.keycloakJson = keycloakJson;
-		AdapterConfig adapterConfig = JsonSerialization.readValue(keycloakJson, AdapterConfig.class);
-		keycloakDeployment = KeycloakDeploymentBuilder.build(adapterConfig);
+		LOGGER.info(keycloakJson);
 	}
 
+	
+	
 	public HttpResponse doCommenceLogin(StaplerRequest request, StaplerResponse response,
 			@Header("Referer") final String referer) throws IOException {
 		request.getSession().setAttribute(REFERER_ATTRIBUTE, referer);
@@ -106,8 +107,8 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 		String state = UUID.randomUUID().toString();
 
-		String authUrl = keycloakDeployment.getAuthUrl().clone()
-				.queryParam(OAuth2Constants.CLIENT_ID, keycloakDeployment.getResourceName())
+		String authUrl = getKeycloakDeployment().getAuthUrl().clone()
+				.queryParam(OAuth2Constants.CLIENT_ID, getKeycloakDeployment().getResourceName())
 				.queryParam(OAuth2Constants.REDIRECT_URI, redirect)
 				.queryParam(OAuth2Constants.STATE, state)
 				.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE)
@@ -145,14 +146,14 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 		try {
 
-			AccessTokenResponse tokenResponse = ServerRequest.invokeAccessCodeToToken(keycloakDeployment,
+			AccessTokenResponse tokenResponse = ServerRequest.invokeAccessCodeToToken(getKeycloakDeployment(),
 					request.getParameter("code"), redirect, null);
 
 			String tokenString = tokenResponse.getToken();
 			String idTokenString = tokenResponse.getIdToken();
 			String refreashToken = tokenResponse.getRefreshToken();
 
-			AccessToken token = AdapterRSATokenVerifier.verifyToken(tokenString, keycloakDeployment);
+			AccessToken token = AdapterRSATokenVerifier.verifyToken(tokenString, getKeycloakDeployment());
 			if (idTokenString != null) {
 				JWSInput input = new JWSInput(idTokenString);
 
@@ -212,7 +213,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		KeycloakAuthentication keycloakAuthentication = (KeycloakAuthentication) SecurityContextHolder.getContext()
 				.getAuthentication();
 		try {
-			ServerRequest.invokeLogout(this.keycloakDeployment, keycloakAuthentication.getRefreashToken());
+			ServerRequest.invokeLogout(getKeycloakDeployment(), keycloakAuthentication.getRefreashToken());
 			super.doLogout(req, rsp);
 		} catch (HttpFailure e) {
 			LOGGER.log(Level.SEVERE, "Logout Exception ", e);
@@ -247,5 +248,15 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 	public void setKeycloakJson(String keycloakJson) {
 		this.keycloakJson = keycloakJson;
+	}
+
+	private synchronized KeycloakDeployment getKeycloakDeployment() throws IOException
+	{
+		if(keycloakDeployment==null||keycloakDeployment.getClient()==null)
+		{
+			AdapterConfig adapterConfig = JsonSerialization.readValue(keycloakJson, AdapterConfig.class);
+			keycloakDeployment = KeycloakDeploymentBuilder.build(adapterConfig);
+		}
+		return keycloakDeployment;
 	}
 }
