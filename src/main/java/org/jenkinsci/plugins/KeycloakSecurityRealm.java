@@ -97,8 +97,6 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		LOGGER.info(keycloakJson);
 	}
 
-	
-	
 	public HttpResponse doCommenceLogin(StaplerRequest request, StaplerResponse response,
 			@Header("Referer") final String referer) throws IOException {
 		request.getSession().setAttribute(REFERER_ATTRIBUTE, referer);
@@ -109,11 +107,8 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 		String authUrl = getKeycloakDeployment().getAuthUrl().clone()
 				.queryParam(OAuth2Constants.CLIENT_ID, getKeycloakDeployment().getResourceName())
-				.queryParam(OAuth2Constants.REDIRECT_URI, redirect)
-				.queryParam(OAuth2Constants.STATE, state)
-				.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE)
-				.build()
-				.toString();
+				.queryParam(OAuth2Constants.REDIRECT_URI, redirect).queryParam(OAuth2Constants.STATE, state)
+				.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE).build().toString();
 
 		return new HttpRedirect(authUrl);
 
@@ -122,13 +117,14 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	private String redirectUrl(StaplerRequest request) {
 		String refererURL = request.getReferer();
 		String requestURL = request.getRequestURL().toString();
-		//if a reverse proxy with ssl is used, the redirect should point to https
-		if(refererURL!=null&&requestURL!=null&&refererURL.startsWith("https:")&&requestURL.startsWith("http:"))
-		{
+		// if a reverse proxy with ssl is used, the redirect should point to
+		// https
+		if (refererURL != null && requestURL != null && refererURL.startsWith("https:")
+				&& requestURL.startsWith("http:")) {
 			requestURL = requestURL.replace("http:", "https:");
 		}
-		KeycloakUriBuilder builder = KeycloakUriBuilder.fromUri(requestURL)
-				.replacePath(request.getContextPath()).replaceQuery(null).path(JENKINS_LOG_OUT_URL);
+		KeycloakUriBuilder builder = KeycloakUriBuilder.fromUri(requestURL).replacePath(request.getContextPath())
+				.replaceQuery(null).path(JENKINS_LOG_OUT_URL);
 		String redirect = builder.toTemplate();
 		return redirect;
 	}
@@ -210,14 +206,16 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 	@Override
 	public void doLogout(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-		KeycloakAuthentication keycloakAuthentication = (KeycloakAuthentication) SecurityContextHolder.getContext()
-				.getAuthentication();
-		try {
-			ServerRequest.invokeLogout(getKeycloakDeployment(), keycloakAuthentication.getRefreashToken());
-			super.doLogout(req, rsp);
-		} catch (HttpFailure e) {
-			LOGGER.log(Level.SEVERE, "Logout Exception ", e);
+		final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication instanceof KeycloakAuthentication) {
+			KeycloakAuthentication keycloakAuthentication = (KeycloakAuthentication) authentication;
+			try {
+				ServerRequest.invokeLogout(getKeycloakDeployment(), keycloakAuthentication.getRefreashToken());
+			} catch (HttpFailure e) {
+				LOGGER.log(Level.SEVERE, "Logout Exception ", e);
+			}
 		}
+		super.doLogout(req, rsp);
 	}
 
 	@Extension
@@ -250,10 +248,8 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		this.keycloakJson = keycloakJson;
 	}
 
-	private synchronized KeycloakDeployment getKeycloakDeployment() throws IOException
-	{
-		if(keycloakDeployment==null||keycloakDeployment.getClient()==null)
-		{
+	private synchronized KeycloakDeployment getKeycloakDeployment() throws IOException {
+		if (keycloakDeployment == null || keycloakDeployment.getClient() == null) {
 			AdapterConfig adapterConfig = JsonSerialization.readValue(keycloakJson, AdapterConfig.class);
 			keycloakDeployment = KeycloakDeploymentBuilder.build(adapterConfig);
 		}
