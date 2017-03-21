@@ -1,0 +1,10 @@
+language: java
+jdk:
+- oraclejdk8
+deploy:
+  file: bintray.json
+  provider: bintray
+  user: devlauer
+  on: production
+  key:
+    secure: haPoPtE/aoxUkAKUg7vzxo/nQqApdcPZU8Ah5B/MN9RTHZ6wXwRLkLCIJklouv42Z7ubiqQfzPsnq+ya6BznYmtZxbwNQ/qBFRlIrzzGLIVTqng3DQT7briX5hevhQvOMVp2DLQcU4NjhihGWOkkQgZjmdGydpHLQiTs+7rUockEP187boYrzklrshESO9LyFLEspK7/8j4QYGL2S/0z8GvLfv1lklRoPqwdYw8xyboo3oh2iZajBqlzot3T+g8htx7h+9dND4FpOV2ZbNzMtG8DorIHrKFbZOtAtOWyzxGEaEUNh+t7U6cTpwe9yVc9x2B37sgtkBc0Fp8PLVOulBLnRnvvlkr4lyrecIZLx1zM33FFyurg/OKoVSAJb8xiX3W66XbJfM5sfPHth+kxH0U21Fh/EeiM7buJQopiBxxmcPChfXOD6BV78XSPAriuY+nxqSCvSc2pgf2P2HLckrW4j3q+QZ7iAGZmPHIlPmqkETHXtPrcS0krUXJ6AbMsCHbSijyqJkV4CIY/aq5206nspHrMtDjYbzkiL311/Gpp5NaRWv64KTIz8IWmJRasUvGNHPBFCrprr3ocj03UQvhxKLYeNp9jFdCiMR/ItGjZzfabvirnRuV3iKzGnjwONZebH6iP0GT6agMoTwDbK/RluD+MlrmYtYei+vTo9Lg=
