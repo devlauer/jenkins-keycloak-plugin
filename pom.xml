@@ -48,6 +48,10 @@
 			<email>dev.lauer@gmail.com</email>
 			<timezone>+1:00</timezone>
 		</developer>
+		<developer>
+			<id>askannon</id>
+			<name>Thorsten</name>
+		</developer>
 	</developers>
 
 	<scm>
