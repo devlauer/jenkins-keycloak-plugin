@@ -2,7 +2,6 @@ language: java
 jdk:
 - oraclejdk8
 after_success:
-- mvn clean javadoc:jar
 - mvn deploy --settings travis-settings.xml
 branches:
   only:
