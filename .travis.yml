@@ -1,14 +1,14 @@
 language: java
-
 jdk:
-  - oraclejdk8
-
+- oraclejdk8
 after_success:
-  - mvn clean javadoc:jar
-  - mvn deploy --settings travis-settings.xml
-
+- mvn clean javadoc:jar
+- mvn deploy --settings travis-settings.xml
 branches:
   only:
-    - master
-      # Build tags that match this regex in addition to building the master branch.
-    - /^jenkins-keycloak-plugin-[0-9]+\.[0-9]+\.[0-9]+/
+  - master
+  - "/^jenkins-keycloak-plugin-[0-9]+\\.[0-9]+\\.[0-9]+/"
+env:
+  global:
+  - secure: IZNuYHmEu+gzY95yisf/XQKejVWu+Jf3onHIiirKvNlkQ0Ba/m2KO8ttQJpy4GHG7aDAeX+9O0PH5HE+1SpuGACTdFLmvWwvc3ikWAifjyPPTmFJgE5tNkZetcFVl0rOQZmRGvMib/PiLUGTj9lYGoaMrPJte3pes9Ubg9aNHDyU8SwwpVhwZNLJgE6bbUin2i2Xrbal08ZO2/AAS6KM0cXVMPztiqZERYgeP0lrOms1jFP7uuZ8RAO8I2zTp9SccVGsnnbHam+UnNhIO/YHdwT71PSPBUt06bIj/nsfInnj1vJACDxZPr+4pnZt2cdPZ8+CIJxHhRhazs6CXSkwEGtGlSfpWA7ox7thAb0oyvEcBc3xOrkWomvjXUiEoEKgmwJPu5QnwGqGrjVL42nePZXpXs5MvWwzF4nDbeb2+ALzniXscaauJdFBjdNOMQOFpmIJwtP68224Qw4BEBD53lHDwcedvSKlfDm7DefJ0e3wsWgH72KbOa+4OTgOfDacfSL3FHtFlVc0a5EJ+rkN71RJDGZs/ZQNRo/MKBtlBLfzDA+LCxiBEK1Vvi9qE3Y0kpIKe9AbQ93UVqfx125M2eV+rXInyks/lZrFP47lWIxteyxbnlkJaOrqpinBHXOfTv6jbVyzIvT5nCcEW0LrJyEp+NxKcL+UQmzA7gMLHA4=
+  - secure: ChGH0LODgRVRHyYfADT7RZpUyO8+SJxkg+TBBGXtMMiF0I8G3N4Nppw/aoViWr4v6xpxxgoxxF03TUStzriuPkKdZK7jghCWBsq2EugaXqlErLFCkk48A/LkZdLfDhjkX6mholC46y2yLrcT0gQyTMTPOEFEGkP4yKtMMzcUe02yMbkyw2Q5KbHvMdzDrbBviI5NzFo/0iDY6DaiPKHujcrGIjDwf97rWcZBPLePCMXn1nF0UAPKOFRqJoT+Xd6Y5gSNKnmIY/YCyKOeN8iEO0sfHzA6nnDimz7QSs78xIViiVBOhMt2gG+4c1wmDFKLiDt7V0LICQwtA9bAxtUxxiXdFBOQ3lgcoxVlVOBAMheHTEGDpCA8uPR5lPD3s12aoFfzP4U42kqxulwnjL/IuBTdmehVF1qQ0FX1P4xUk6hYcvJm5SGUTHJx0acShtaN8EVrXl0MsRUW8Z9SxOrEfTLnYnulH8a2qknx822X0+2AGnhvmPSxC9x3gtDq2TJUbQ5nu6VB8kD/QrYflBy1rTx1vqiurfb9Succln1kTZv4GOzziwXS5Ys/OGgpnXlESp8IuAO+dIfkaIzZ+5UEYN0ju3CU/UPi9DLxlfZEU5vBe99G+uu+pabI8Ur2khXYgpR8hijmxUYr17ObijIdos6eWKdaNTlTW07j6ssdbbo=
