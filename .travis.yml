@@ -1,11 +1,12 @@
 language: java
 jdk:
-- oraclejdk8
+- oraclejdk7
 after_success:
-- mvn deploy --settings travis-settings.xml
+- test "${TRAVIS_PULL_REQUEST}" == "false" && test “${TRAVIS_JDK_VERSION}” == “oraclejdk7″ && test "${TRAVIS_TAG}" != "" && mvn deploy --settings travis-settings.xml
 branches:
   only:
   - master
+  # Build tags that match this regex in addition to building the master branch.
   - "/^jenkins-keycloak-plugin-[0-9]+\\.[0-9]+\\.[0-9]+/"
 env:
   global:

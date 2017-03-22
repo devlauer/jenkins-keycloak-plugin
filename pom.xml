@@ -348,7 +348,7 @@
 		<snapshotRepository>
 			<id>bintray-repo-maven-de.elnarion.jenkins.plugins.keycloak-snapshot</id>
 			<name>bintray-devlauer-snapshots</name>
-			<url>https://bintray.com/devlauer/devlauer.mvn-snapshots/de.elnarion.jenkins.plugins.keycloak/;publish=1</url>
+			<url>https://bintray.com/devlauer/devlauer.mvn-snapshots/de.elnarion.jenkins.plugins.keycloak/;publish=1/;overwrite=1</url>
 		</snapshotRepository>
 	</distributionManagement>
 
