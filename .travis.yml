@@ -5,7 +5,7 @@ jdk:
 
 after_success:
   - mvn clean javadoc:jar
-  - mvn deploy --settings settings.xml
+  - mvn deploy --settings travis-settings.xml
 
 branches:
   only:
