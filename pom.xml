@@ -10,10 +10,10 @@
 	</parent>
 
 	<groupId>de.elnarion.jenkins.plugins</groupId>
-	<artifactId>jenkins-keycloak-plugin</artifactId>
-	<version>0.1-SNAPSHOT</version>
+	<artifactId>keycloak</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
 	<name>Keycloak Authentication plugin</name>
-	<description>A plugin to incorporate SSO into Jenkins using Keycloak</description>
+	<description>Integrate Keycloak Authentication Mechanism</description>
 	<packaging>hpi</packaging>
 
 	<url>http://wiki.jenkins-ci.org/display/JENKINS/Keycloak+OAuth+Plugin</url>
@@ -25,7 +25,6 @@
 		<httpcomponents.version>4.5</httpcomponents.version>
 		<bouncycastle.version>1.52</bouncycastle.version>
 		<jackson.version>2.5.4</jackson.version>
-		<jboss.logging.version>3.3.0.Final</jboss.logging.version>
 	</properties>
 
 	<licenses>
@@ -43,7 +42,7 @@
 			<timezone>+5:30</timezone>
 		</developer>
 		<developer>
-			<id>dev.lauer</id>
+			<id>devlauer</id>
 			<name>Lauer</name>
 			<email>dev.lauer@gmail.com</email>
 			<timezone>+1:00</timezone>
@@ -76,16 +75,6 @@
 
 	<dependencies>
 
-		<dependency>
-			<groupId>org.jboss.logging</groupId>
-			<artifactId>jboss-logging</artifactId>
-			<version>${jboss.logging.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>net.iharder</groupId>
-			<artifactId>base64</artifactId>
-			<version>2.3.8</version>
-		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
@@ -327,9 +316,15 @@
 
 	<distributionManagement>
 		<repository>
-			<id>bintray-repo-maven-de.elnarion.jenkins.plugins.jenkins-keycloak-plugin</id>
-			<url>https://bintray.com/devlauer/devlauer.mvn/de.elnarion.jenkins.plugins.jenkins-keycloak-plugin/;publish=1</url>
+			<id>bintray-repo-maven-de.elnarion.jenkins.plugins.keycloak-release</id>
+			<name>bintray-devlauer-releases</name>
+			<url>https://bintray.com/devlauer/devlauer.mvn/de.elnarion.jenkins.plugins.keycloak/;publish=1</url>
 		</repository>
+		<snapshotRepository>
+			<id>bintray-repo-maven-de.elnarion.jenkins.plugins.keycloak-snapshot</id>
+			<name>bintray-devlauer-snapshots</name>
+			<url>https://bintray.com/devlauer/devlauer.mvn-snapshots/de.elnarion.jenkins.plugins.keycloak/;publish=1</url>
+		</snapshotRepository>
 	</distributionManagement>
 
 </project>

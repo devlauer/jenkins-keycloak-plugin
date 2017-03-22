@@ -26,14 +26,7 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
-import hudson.Extension;
-import hudson.model.Descriptor;
-import hudson.model.User;
-import hudson.security.SecurityRealm;
-import hudson.tasks.Mailer;
-
 import java.io.IOException;
-import java.security.PublicKey;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -46,14 +39,13 @@ import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.keycloak.OAuth2Constants;
-import org.keycloak.RSATokenVerifier;
 import org.keycloak.adapters.KeycloakDeployment;
 import org.keycloak.adapters.KeycloakDeploymentBuilder;
 import org.keycloak.adapters.ServerRequest;
 import org.keycloak.adapters.ServerRequest.HttpFailure;
 import org.keycloak.adapters.rotation.AdapterRSATokenVerifier;
+import org.keycloak.common.VerificationException;
 import org.keycloak.common.util.KeycloakUriBuilder;
-import org.keycloak.jose.jws.JWSBuilder;
 import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.AccessTokenResponse;
@@ -67,6 +59,12 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+
+import hudson.Extension;
+import hudson.model.Descriptor;
+import hudson.model.User;
+import hudson.security.SecurityRealm;
+import hudson.tasks.Mailer;
 
 /**
  *
