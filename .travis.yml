@@ -1,18 +1,24 @@
 language: java
+dist: trusty
+sudo: required
 jdk:
-- oraclejdk7
 - oraclejdk8
+services:
+- docker
+before_install:
+- openssl aes-256-cbc -K $encrypted_de51ce476be8_key -iv $encrypted_de51ce476be8_iv
+  -in update-center.key.enc -out ./update-center.key -d
 after_success:
-- test "${TRAVIS_PULL_REQUEST}" == "false" && test “${TRAVIS_JDK_VERSION}” == “oraclejdk7″ && test "${TRAVIS_TAG}" != "" && mvn deploy --settings travis-settings.xml
+- echo tag_is_${TRAVIS_TAG}_ && test -n "${TRAVIS_TAG}" && mvn deploy --settings travis-settings.xml
+  && ./upload_version.sh
 cache:
   directories:
-    - $HOME/.m2
+  - "$HOME/.m2"
 branches:
   only:
   - master
-  # Build tags that match this regex in addition to building the master branch.
   - "/^jenkins-keycloak-plugin-[0-9]+\\.[0-9]+\\.[0-9]+/"
 env:
   global:
-  - secure: IZNuYHmEu+gzY95yisf/XQKejVWu+Jf3onHIiirKvNlkQ0Ba/m2KO8ttQJpy4GHG7aDAeX+9O0PH5HE+1SpuGACTdFLmvWwvc3ikWAifjyPPTmFJgE5tNkZetcFVl0rOQZmRGvMib/PiLUGTj9lYGoaMrPJte3pes9Ubg9aNHDyU8SwwpVhwZNLJgE6bbUin2i2Xrbal08ZO2/AAS6KM0cXVMPztiqZERYgeP0lrOms1jFP7uuZ8RAO8I2zTp9SccVGsnnbHam+UnNhIO/YHdwT71PSPBUt06bIj/nsfInnj1vJACDxZPr+4pnZt2cdPZ8+CIJxHhRhazs6CXSkwEGtGlSfpWA7ox7thAb0oyvEcBc3xOrkWomvjXUiEoEKgmwJPu5QnwGqGrjVL42nePZXpXs5MvWwzF4nDbeb2+ALzniXscaauJdFBjdNOMQOFpmIJwtP68224Qw4BEBD53lHDwcedvSKlfDm7DefJ0e3wsWgH72KbOa+4OTgOfDacfSL3FHtFlVc0a5EJ+rkN71RJDGZs/ZQNRo/MKBtlBLfzDA+LCxiBEK1Vvi9qE3Y0kpIKe9AbQ93UVqfx125M2eV+rXInyks/lZrFP47lWIxteyxbnlkJaOrqpinBHXOfTv6jbVyzIvT5nCcEW0LrJyEp+NxKcL+UQmzA7gMLHA4=
-  - secure: ChGH0LODgRVRHyYfADT7RZpUyO8+SJxkg+TBBGXtMMiF0I8G3N4Nppw/aoViWr4v6xpxxgoxxF03TUStzriuPkKdZK7jghCWBsq2EugaXqlErLFCkk48A/LkZdLfDhjkX6mholC46y2yLrcT0gQyTMTPOEFEGkP4yKtMMzcUe02yMbkyw2Q5KbHvMdzDrbBviI5NzFo/0iDY6DaiPKHujcrGIjDwf97rWcZBPLePCMXn1nF0UAPKOFRqJoT+Xd6Y5gSNKnmIY/YCyKOeN8iEO0sfHzA6nnDimz7QSs78xIViiVBOhMt2gG+4c1wmDFKLiDt7V0LICQwtA9bAxtUxxiXdFBOQ3lgcoxVlVOBAMheHTEGDpCA8uPR5lPD3s12aoFfzP4U42kqxulwnjL/IuBTdmehVF1qQ0FX1P4xUk6hYcvJm5SGUTHJx0acShtaN8EVrXl0MsRUW8Z9SxOrEfTLnYnulH8a2qknx822X0+2AGnhvmPSxC9x3gtDq2TJUbQ5nu6VB8kD/QrYflBy1rTx1vqiurfb9Succln1kTZv4GOzziwXS5Ys/OGgpnXlESp8IuAO+dIfkaIzZ+5UEYN0ju3CU/UPi9DLxlfZEU5vBe99G+uu+pabI8Ur2khXYgpR8hijmxUYr17ObijIdos6eWKdaNTlTW07j6ssdbbo=
+  - secure: rEXprmvXWCt3YGgBg4wT8WLsqSgkPazAbGHNMuhVEaPjOZWrmOp/B16JNVzGTFxekDoPHSY9oOI+Q//+9IKazfp9r0uVVsgHKjUoPQQzrYxprmvwzBLlsLK1oRb7803PNmcy53AEvepp0UQNSjx+LbsAc8KMejNECXlO1KVCAa2JXxJ0u3i14tp+zkcSjdVQ6hCB+/o6J694JF47alPf/iRTZtQ71fHu4qO3CM1G+G07qoPRyK6czXmEdDKtJoYCjB6mmAzmISDex2+eJjqBbMCIvc7nISvNfQxD1QnFIFgqBBm9FN4B1XZK4LIcql9pmNoW5+4IWc6DEX7W75Ykx6hcLjhd+FJ0843F5GOOK1Si3EJdfektg340Hob5xeSmvz0fPs8rhwlrkrVWlCpZ5P+C8plv/BfE99okHu1T4yeltsJ2T8LaqIuAqlAjbHMXhNg3Juc25rxxt+pwcM0LFLL4jb5uJ2Lah5A5Is3T+8vLgYI51gCs7iuQFXBSdFbcWnUTL7yUEKzzVZqHNNOGq99BVPPmXn3LVihKLF/PD6PhfunKLeNrvh4ZNibULQm10f4YLKRxEnSsjrUE2aMNkPyP3Xa21bN2GzDLXpc2ZgM5iSWZH6N2XnjfvpiJtND2GUlGRfydp3NGERSPpz/jiCxf3gtDhGDRuyLwfpvW1nk=
+  - secure: JqUz7hkMzxhoNM1xPDyDxV439HmU1CKws49AxP6olSle5G4INyATGXoaQOVE0B85YtcfRTDe5nvjuQkPAj1JbpywVs/tPCiG2n7Zv9SH2adBHNEYdr4rPI/7KvD4yqcmctL2e+QeK29ZSWN979mLCXFeuFK+H5DYS3FUEGBvQ7C/KvJDFoCFwzU6BQl27igndh3rXISlinsOc3PVEKksn59wYsN3MAdOgaOk14HNmUZqmTnuv5pHTT4xi3MJmDo7EBnZojbN6XYCY31HgGBDgOLRvcL1PVDN1fKIKTv8NDPW5waxSUt9SFZzMMq1+SXe9q5P7ZXYj38L4FxiaMNuXCvhnzyHKDC5Af47LjHrbCRYop4NpMuqMpTRozKiaYooela6tR9RkZv5lo79HjgBbKAoymKmWAurLn+8v2LiWUAdidn5lWN7SuvPdRitWz8JlGXaI++SPawy6rC36z/pVLdV1s6OEuPOd5RZf2gtpxG4PvIryIB3OK0xFpp2MBDf7j5IkXu4Oh/xy1sR5JUmNWr6MY63bFWSxYyZYOwXuxsQ/Ap+7IUltOXJ+T5FtfB3AqY24r9RST52mVPsOKSPcobNWRldpA/VWvZRj5sMXH23/lEdWPSt9Zm6EehXkHsqodbYKO/03eXBFV55x4zcJWZBi9ESFmM8r57YO9Oz6Ac=
