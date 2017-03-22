@@ -5,10 +5,10 @@ jdk:
 
 after_success:
   - mvn clean javadoc:jar
-  - test "${TRAVIS_PULL_REQUEST}" == "false" && test "${TRAVIS_TAG}" != "" && mvn deploy --settings settings.xml
+  - mvn deploy --settings settings.xml
 
 branches:
   only:
     - master
       # Build tags that match this regex in addition to building the master branch.
-    - /^my_awesome_project-[0-9]+\.[0-9]+\.[0-9]+/
+    - /^jenkins-keycloak-plugin-[0-9]+\.[0-9]+\.[0-9]+/

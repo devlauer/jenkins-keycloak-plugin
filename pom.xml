@@ -13,7 +13,7 @@
 	<artifactId>keycloak</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<name>Keycloak Authentication plugin</name>
-	<description>Integrate Keycloak Authentication Mechanism</description>
+	<description>Integrates Keycloak Authentication Mechanism</description>
 	<packaging>hpi</packaging>
 
 	<url>http://wiki.jenkins-ci.org/display/JENKINS/Keycloak+OAuth+Plugin</url>
@@ -59,7 +59,6 @@
 		<url>https://github.com/devlauer/jenkins-keycloak-plugin</url>
 	</scm>
 
-	<!-- Use repositories suggested in plugin tutorial: https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial -->
 	<repositories>
 		<repository>
 			<id>repo.jenkins-ci.org</id>
@@ -74,19 +73,6 @@
 	</pluginRepositories>
 
 	<dependencies>
-
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-core</artifactId>
-			<version>${jackson.version}</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>${jackson.version}</version>
-			<scope>compile</scope>
-		</dependency>
 		<dependency>
 			<groupId>org.keycloak</groupId>
 			<artifactId>keycloak-core</artifactId>
@@ -111,17 +97,10 @@
 			<version>${keycloak.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-			<version>${httpcomponents.version}</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>mailer</artifactId>
 			<version>1.4</version>
 		</dependency>
-
 	</dependencies>
 
 
@@ -138,18 +117,24 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
+					<source>1.7</source>
+					<target>1.7</target>
 					<debug>true</debug>
 				</configuration>
 			</plugin>
-
 			<plugin>
 				<groupId>org.jenkins-ci.tools</groupId>
 				<artifactId>maven-hpi-plugin</artifactId>
 				<extensions>true</extensions>
 				<configuration>
 					<compatibleSinceVersion>1.93</compatibleSinceVersion>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-release-plugin</artifactId>
+				<configuration>
+					<tagNameFormat>jenkins-@{project.artifactId}-plugin-@{project.version}</tagNameFormat>
 				</configuration>
 			</plugin>
 		</plugins>
