@@ -59,7 +59,6 @@
 		<connection>scm:git:ssh://github.com/devlauer/jenkins-keycloak-plugin.git</connection>
 		<developerConnection>scm:git:ssh://git@github.com/devlauer/jenkins-keycloak-plugin.git</developerConnection>
 		<url>https://github.com/devlauer/jenkins-keycloak-plugin</url>
-		<tag>jenkins-keycloak-plugin-1.0.5-0004</tag>
 	</scm>
 
 	<repositories>
