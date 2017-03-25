@@ -65,6 +65,7 @@ import hudson.model.Descriptor;
 import hudson.model.User;
 import hudson.security.SecurityRealm;
 import hudson.tasks.Mailer;
+import net.sf.json.JSONObject;
 
 /**
  *
@@ -86,13 +87,10 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	private static final String REFERER_ATTRIBUTE = KeycloakSecurityRealm.class.getName() + ".referer";
 
 	private transient KeycloakDeployment keycloakDeployment;
-	private String keycloakJson;
 
 	@DataBoundConstructor
-	public KeycloakSecurityRealm(String keycloakJson) throws IOException {
+	public KeycloakSecurityRealm() throws IOException {
 		super();
-		this.keycloakJson = keycloakJson;
-		LOGGER.info(keycloakJson);
 	}
 
 	public HttpResponse doCommenceLogin(StaplerRequest request, StaplerResponse response,
@@ -217,8 +215,10 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	}
 
 	@Extension
-	public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
+	public static class DescriptorImpl extends Descriptor<SecurityRealm> {
 
+		private String keycloakJson ="";
+		
 		@Override
 		public String getHelpFile() {
 			return "/plugin/keycloak/help/help-security-realm.html";
@@ -230,25 +230,43 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		}
 
 		public DescriptorImpl() {
-			super();
+			load();
+		}
+		
+		@Override
+		public boolean configure(StaplerRequest req, JSONObject json) throws hudson.model.Descriptor.FormException {
+			json = json.getJSONObject("keycloak");
+			keycloakJson = json.getString("keycloakJson");
+			save();
+			return true;
 		}
 
-		public DescriptorImpl(Class<? extends SecurityRealm> clazz) {
-			super(clazz);
+		public String getKeycloakJson() {
+			return keycloakJson;
+		}
+
+		public void setKeycloakJson(String keycloakJson) {
+			this.keycloakJson = keycloakJson;
+		}
+
+		@Override
+		public SecurityRealm newInstance(StaplerRequest req, JSONObject formData)
+				throws hudson.model.Descriptor.FormException {
+			return super.newInstance(req, formData);
 		}
 	}
 
+	public DescriptorImpl getDescriptor() {
+		return (DescriptorImpl) super.getDescriptor();
+		
+	}
 	public String getKeycloakJson() {
-		return keycloakJson;
-	}
-
-	public void setKeycloakJson(String keycloakJson) {
-		this.keycloakJson = keycloakJson;
+		return getDescriptor().getKeycloakJson();
 	}
 
 	private synchronized KeycloakDeployment getKeycloakDeployment() throws IOException {
 		if (keycloakDeployment == null || keycloakDeployment.getClient() == null) {
-			AdapterConfig adapterConfig = JsonSerialization.readValue(keycloakJson, AdapterConfig.class);
+			AdapterConfig adapterConfig = JsonSerialization.readValue(getKeycloakJson(), AdapterConfig.class);
 			keycloakDeployment = KeycloakDeploymentBuilder.build(adapterConfig);
 		}
 		return keycloakDeployment;

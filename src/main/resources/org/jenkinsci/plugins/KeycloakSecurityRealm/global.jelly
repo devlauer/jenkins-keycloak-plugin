@@ -3,7 +3,7 @@
 -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-	<f:section title="Global Keycloak Settings" >
+	<f:section title="Global Keycloak Settings" name="keycloak" >
 		<f:entry title="Keycloak JSON"  field="keycloakJson" help="/plugin/keycloak/help/auth/keycloak-help.html">
 			<f:textarea />
 		</f:entry>
