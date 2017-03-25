@@ -67,6 +67,10 @@ For more details refer the [official site](https://wiki.jenkins-ci.org/display/J
 
 :+1: :octocat:
 
+Hint
+---
+This repository was originally forked from this  [repository](https://www.github.com/keycloak/jenkins-keycloak-plugin).
+
 TODO
 ---
 
