@@ -7,6 +7,8 @@ services:
 - docker
 before_install:
 - openssl aes-256-cbc -K $encrypted_de51ce476be8_key -iv $encrypted_de51ce476be8_iv
+  -in update-center.key.enc -out update-center.key -d
+- openssl aes-256-cbc -K $encrypted_de51ce476be8_key -iv $encrypted_de51ce476be8_iv
   -in update-center.key.enc -out ./update-center.key -d
 after_success:
 - echo tag_is_${TRAVIS_TAG}_ && test -n "${TRAVIS_TAG}" && mvn deploy --settings travis-settings.xml
