@@ -9,7 +9,7 @@
 	</parent>
 
 	<artifactId>keycloak</artifactId>
-	<version>1.0.1-0001</version>
+	<version>1.0.1-0002-SNAPSHOT</version>
 	<name>Keycloak Authentication Plugin</name>
 	<description>Integrates with Keycloak Authentication</description>
 	<packaging>hpi</packaging>
@@ -61,7 +61,7 @@
 		<connection>scm:git:ssh://github.com/devlauer/jenkins-keycloak-plugin.git</connection>
 		<developerConnection>scm:git:ssh://git@github.com/devlauer/jenkins-keycloak-plugin.git</developerConnection>
 		<url>https://github.com/devlauer/jenkins-keycloak-plugin</url>
-	  <tag>jenkins-keycloak-plugin-1.0.1-0001</tag>
+	  <tag>HEAD</tag>
   </scm>
 
 	<repositories>
