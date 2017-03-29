@@ -58,9 +58,9 @@
 	</developers>
 
 	<scm>
-		<connection>scm:git:ssh://github.com/devlauer/jenkins-keycloak-plugin.git</connection>
-		<developerConnection>scm:git:ssh://git@github.com/devlauer/jenkins-keycloak-plugin.git</developerConnection>
-		<url>https://github.com/devlauer/jenkins-keycloak-plugin</url>
+		<connection>scm:git:ssh://github.com/jenkinsci/jenkins-keycloak-plugin.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com/jenkinsci/jenkins-keycloak-plugin.git</developerConnection>
+		<url>https://github.com/jenkinsci/jenkins-keycloak-plugin</url>
 	  <tag>HEAD</tag>
   </scm>
 

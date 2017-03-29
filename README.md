@@ -1,6 +1,6 @@
 # Keycloak OAuth Plugin
 
- ![Keycloak Jenkins](https://raw.githubusercontent.com/mnadeem/jenkins-keycloak-plugin/master/jk.png)
+ ![Keycloak Jenkins](https://raw.githubusercontent.com/jenkinsci/jenkins-keycloak-plugin/master/jk.png)
 
 
 This plugin incorporates SSO in [Jenkins](http://jenkins-ci.org) with [Keycloak](http://keycloak.jboss.org/)
@@ -50,7 +50,7 @@ For usage information please refer the offical [wiki page](https://wiki.jenkins-
 
 Building From Source
 ---
-:white_check_mark: Checkout or download the source code from the latest tag on [GitHub](https://github.com/mnadeem/jenkins-keycloak-plugin).
+:white_check_mark: Checkout or download the source code from the latest tag on [GitHub](https://github.com/jenkinsci/jenkins-keycloak-plugin).
 
 :white_check_mark: Execute `mvn clean verify` from your local source code folder (install [Maven](http://maven.apache.org) if not already done).
 
@@ -69,7 +69,7 @@ For more details refer the [official site](https://wiki.jenkins-ci.org/display/J
 
 Hint
 ---
-This repository was originally forked from this  [repository](https://www.github.com/keycloak/jenkins-keycloak-plugin).
+This repository was forked from this  [repository](https://www.github.com/devlauer/jenkins-keycloak-plugin), which was originally a fork of this [repository](https://www.github.com/keycloak/jenkins-keycloak-plugin)
 
 TODO
 ---
@@ -78,4 +78,3 @@ TODO
 
 Nice images are from [Emoji](http://www.emoji-cheat-sheet.com/):copyright:
 
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/mnadeem/jenkins-keycloak-plugin/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
