@@ -1,6 +1,6 @@
 # Keycloak Plugin
 
-[![][ButlerImage]] [![][KeycloakLogo]]
+![][ButlerImage] ![][KeycloakLogo]
 
 
 About
