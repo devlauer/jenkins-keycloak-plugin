@@ -9,7 +9,7 @@
 	</parent>
 
 	<artifactId>keycloak</artifactId>
-	<version>2.0.0-0002-SNAPSHOT</version>
+	<version>2.0.1-0001-SNAPSHOT</version>
 	<name>Keycloak Authentication Plugin</name>
 	<description>Integrates with Keycloak Authentication</description>
 	<packaging>hpi</packaging>
@@ -24,7 +24,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<keycloak.version>2.5.4.Final</keycloak.version>
+		<keycloak.version>2.5.5.Final</keycloak.version>
 		<httpcomponents.version>4.5</httpcomponents.version>
 		<bouncycastle.version>1.52</bouncycastle.version>
 		<jackson.version>2.5.4</jackson.version>
@@ -126,13 +126,6 @@
 				<extensions>true</extensions>
 				<configuration>
 					<compatibleSinceVersion>1.93</compatibleSinceVersion>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-release-plugin</artifactId>
-				<configuration>
-					<tagNameFormat>jenkins-@{project.artifactId}-plugin-@{project.version}</tagNameFormat>
 				</configuration>
 			</plugin>
 		</plugins>
@@ -353,13 +346,4 @@
 			</build>
 		</profile>
 	</profiles>
-
-	<distributionManagement>
-		<repository>
-			<id>bintray-repo-maven-de.elnarion.jenkins.plugins.keycloak-release</id>
-			<name>bintray-devlauer-releases</name>
-			<url>https://api.bintray.com/maven/devlauer/devlauer.mvn/de.elnarion.jenkins.plugins.keycloak/;publish=1</url>
-		</repository>
-	</distributionManagement>
-
 </project>
