@@ -25,6 +25,10 @@ License
 ---
 Jenkins-Keycloak-Plugin is **licensed** under the **[MIT License]**.
 
+Versioning
+---
+This plugin uses sematic versioning. For more information refer to [semver]
+
 Reporting bugs and feature requests
 ---
 We use the [Jenkins JIRA] to log all bugs and feature requests. Create a [new account], browse to [Jenkins JIRA] and login with your account then create a new issue with the component `keycloak-plugin`.
@@ -52,6 +56,7 @@ Notice
 ---
 This repository was forked from this  [repository](https://www.github.com/devlauer/jenkins-keycloak-plugin), which was originally a fork of this [repository](https://www.github.com/keycloak/jenkins-keycloak-plugin)
 
+[semver]: http://semver.org
 [Jenkins]: http://jenkins-ci.org 
 [Keycloak]: http://keycloak.jboss.org/
 [new account]: https://accounts.jenkins.io/
