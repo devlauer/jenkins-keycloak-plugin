@@ -29,6 +29,10 @@ Versioning
 ---
 This plugin uses sematic versioning. For more information refer to [semver]
 
+Changelog
+---
+This plugin has a dedicated [Changelog].
+
 Reporting bugs and feature requests
 ---
 We use the [Jenkins JIRA] to log all bugs and feature requests. Create a [new account], browse to [Jenkins JIRA] and login with your account then create a new issue with the component `keycloak-plugin`.
@@ -65,6 +69,7 @@ This repository was forked from this  [repository](https://www.github.com/devlau
 [Jenkins JIRA]: https://issues.jenkins-ci.org/
 [official plugin tutorial]: https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial
 [MIT License]: https://github.com/jenkinsci/keycloak-plugin/raw/master/LICENSE
+[Changelog]: https://github.com/jenkinsci/keycloak-plugin/blob/master/Changelog.md
 [GitHub]: https://github.com/jenkinsci/keycloak-plugin
 [Maven]: http://maven.apache.org
 [wiki]: https://wiki.jenkins-ci.org/display/JENKINS/keycloak-plugin

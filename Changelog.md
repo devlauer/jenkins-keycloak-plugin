@@ -2,8 +2,17 @@
 
 Only noting significant user changes, not internal code cleanups and minor bug fixes.
 
-## 2.0.1 (April 1 2017)
-First release on jenkins-ci infrastructure. Supported Keycloak version is now 2.5.5.Final
+## [Unreleased]
+Nothing
+
+## [2.0.2] - 2017-04-02
+###Changed
+- Updated Keycloak client version to 3.0.0.Final. Client is also compatible to 2.5.x keycloak server.
+
+## [2.0.1] - 2017-04-01
+First release on jenkins-ci infrastructure. 
+###Changed
+- Supported Keycloak version is now 2.5.5.Final
 
 ## Older releases
 Older releases can be found at a separate [update-site](https://dl.bintray.com/devlauer/update-site/update-center.json). 
