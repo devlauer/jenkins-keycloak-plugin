@@ -1,7 +1,6 @@
 # Keycloak Plugin
 
-<img src="https://jenkins.io/sites/default/files/jenkins_logo.png" alt="" width="250" />
-<img src="https://github.com/keycloak/keycloak/raw/master/themes/src/main/resources/theme/keycloak/welcome/resources/keycloak_logo.png" alt="" width="250" />
+<img src="https://jenkins.io/sites/default/files/jenkins_logo.png" alt="" width="250" /><img src="https://github.com/keycloak/keycloak/raw/master/themes/src/main/resources/theme/keycloak/welcome/resources/keycloak_logo.png" alt="" width="250" />
 
 
 About
