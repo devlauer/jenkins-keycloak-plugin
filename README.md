@@ -1,6 +1,6 @@
 # Keycloak Plugin
 
-![][ButlerImage] ![][KeycloakLogo]
+![](https://jenkins.io/sites/default/files/jenkins_logo.png | width=250) ![](https://github.com/keycloak/keycloak/raw/master/themes/src/main/resources/theme/keycloak/welcome/resources/keycloak_logo.png | width=250)
 
 
 About
@@ -64,8 +64,6 @@ This repository was forked from this  [repository](https://www.github.com/devlau
 [Jenkins]: http://jenkins-ci.org 
 [Keycloak]: http://keycloak.jboss.org/
 [new account]: https://accounts.jenkins.io/
-[ButlerImage]: https://jenkins.io/sites/default/files/jenkins_logo.png
-[KeycloakLogo]: https://github.com/keycloak/keycloak/raw/master/themes/src/main/resources/theme/keycloak/welcome/resources/keycloak_logo.png
 [Jenkins JIRA]: https://issues.jenkins-ci.org/
 [official plugin tutorial]: https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial
 [MIT License]: https://github.com/jenkinsci/keycloak-plugin/raw/master/LICENSE
