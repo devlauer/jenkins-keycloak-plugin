@@ -5,6 +5,11 @@ Only noting significant user changes, not internal code cleanups and minor bug f
 ## [Unreleased]
 Nothing
 
+## [2.0.3] - 2017-07-16
+###Changed
+- Updated Keycloak client version to 3.2.0.Final. Client is also compatible to 3.0.0 keycloak server.
+- Added openidconnect scope to the initial keycloak request because keycloak 3.2.0.Final server does not accept openidconnect requests without a proper scope anymore (KEYCLOAK-3316, KEYCLOAK-3237)
+
 ## [2.0.2] - 2017-04-02
 ###Changed
 - Updated Keycloak client version to 3.0.0.Final. Client is also compatible to 2.5.x keycloak server.
