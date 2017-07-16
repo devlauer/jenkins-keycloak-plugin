@@ -27,23 +27,35 @@ THE SOFTWARE.
 package org.jenkinsci.plugins;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.security.cert.X509Certificate;
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
 
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.OAuth2Constants;
+import org.keycloak.adapters.AdapterDeploymentContext;
 import org.keycloak.adapters.KeycloakDeployment;
 import org.keycloak.adapters.KeycloakDeploymentBuilder;
+import org.keycloak.adapters.OIDCHttpFacade;
 import org.keycloak.adapters.ServerRequest;
 import org.keycloak.adapters.ServerRequest.HttpFailure;
 import org.keycloak.adapters.rotation.AdapterRSATokenVerifier;
+import org.keycloak.adapters.spi.AuthenticationError;
+import org.keycloak.adapters.spi.LogoutError;
+import org.keycloak.adapters.spi.HttpFacade.Cookie;
+import org.keycloak.adapters.spi.HttpFacade.Request;
+import org.keycloak.adapters.spi.HttpFacade.Response;
 import org.keycloak.common.VerificationException;
 import org.keycloak.common.util.KeycloakUriBuilder;
 import org.keycloak.jose.jws.JWSInput;
@@ -51,7 +63,9 @@ import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.AccessTokenResponse;
 import org.keycloak.representations.IDToken;
 import org.keycloak.representations.adapters.config.AdapterConfig;
+import org.keycloak.servlet.ServletOAuthClient.ServletFacade;
 import org.keycloak.util.JsonSerialization;
+import org.keycloak.util.TokenUtil;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
@@ -75,7 +89,7 @@ import net.sf.json.JSONObject;
  * This is based on the MySQLSecurityRealm from the mysql-auth-plugin written by
  * Alex Ackerman.
  * 
- * @author Mohammad Nadeem
+ * @author Mohammad Nadeem, devlauer
  */
 public class KeycloakSecurityRealm extends SecurityRealm {
 
@@ -97,6 +111,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 			@Header("Referer") final String referer) throws IOException {
 		request.getSession().setAttribute(REFERER_ATTRIBUTE, referer);
 
+		String scopeParam = TokenUtil.attachOIDCScope(null);
 		String redirect = redirectUrl(request);
 
 		String state = UUID.randomUUID().toString();
@@ -104,7 +119,8 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		String authUrl = getKeycloakDeployment().getAuthUrl().clone()
 				.queryParam(OAuth2Constants.CLIENT_ID, getKeycloakDeployment().getResourceName())
 				.queryParam(OAuth2Constants.REDIRECT_URI, redirect).queryParam(OAuth2Constants.STATE, state)
-				.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE).build().toString();
+				.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE)
+				.queryParam(OAuth2Constants.SCOPE,scopeParam).build().toString();
 
 		return new HttpRedirect(authUrl);
 
@@ -125,27 +141,39 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		return redirect;
 	}
 
+    private KeycloakDeployment resolveDeployment(KeycloakDeployment baseDeployment, HttpServletRequest request) {
+        ServletFacade facade = new ServletFacade(request);
+        return new AdapterDeploymentContext(baseDeployment).resolveDeployment(facade);
+    }	
+	
 	/**
 	 * This is where the user comes back to at the end of the OpenID redirect
 	 * ping-pong.
+	 * @throws IOException 
 	 * 
 	 * @throws HttpFailure
 	 * @throws VerificationException
 	 */
-	public HttpResponse doFinishLogin(StaplerRequest request) {
+	public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
 
 		String redirect = redirectUrl(request);
 
 		try {
+			LOGGER.log(Level.FINE, "Code"+request.getParameter(OAuth2Constants.CODE));
+			LOGGER.log(Level.FINE, "Redirect"+redirect);
 
-			AccessTokenResponse tokenResponse = ServerRequest.invokeAccessCodeToToken(getKeycloakDeployment(),
-					request.getParameter("code"), redirect, null);
+			KeycloakDeployment resolvedDeployment = resolveDeployment(getKeycloakDeployment(), request);
+
+			LOGGER.log(Level.FINE, "TokenURL"+resolvedDeployment.getTokenUrl());
+
+			AccessTokenResponse tokenResponse = ServerRequest.invokeAccessCodeToToken(resolvedDeployment,
+					request.getParameter(OAuth2Constants.CODE), redirect, null);
 
 			String tokenString = tokenResponse.getToken();
 			String idTokenString = tokenResponse.getIdToken();
 			String refreashToken = tokenResponse.getRefreshToken();
 
-			AccessToken token = AdapterRSATokenVerifier.verifyToken(tokenString, getKeycloakDeployment());
+			AccessToken token = AdapterRSATokenVerifier.verifyToken(tokenString, resolvedDeployment);
 			if (idTokenString != null) {
 				JWSInput input = new JWSInput(idTokenString);
 
@@ -164,7 +192,27 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 			}
 
 		} catch (Exception e) {
+			HttpFailure hf = null;
 			LOGGER.log(Level.SEVERE, "Authentication Exception ", e);
+			if(e instanceof HttpFailure)
+			{
+				hf = (HttpFailure)e;
+			}
+			Throwable cause = e.getCause();
+			if(cause!=null)
+			{
+				LOGGER.log(Level.SEVERE, "Original exception", cause);
+				if(cause instanceof HttpFailure)
+				{
+					hf=(HttpFailure)cause;
+				}
+			}
+			if(hf!=null)
+			{
+				LOGGER.log(Level.SEVERE, "Failure Message"+ ((HttpFailure)e).getError());
+				LOGGER.log(Level.SEVERE, "Failure HTTP Status"+ ((HttpFailure)e).getStatus());
+			}
+			
 		}
 
 		String referer = (String) request.getSession().getAttribute(REFERER_ATTRIBUTE);
@@ -271,4 +319,107 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		}
 		return keycloakDeployment;
 	}
+
+    public static class ServletFacade implements OIDCHttpFacade {
+
+        private final HttpServletRequest servletRequest;
+
+        private ServletFacade(HttpServletRequest servletRequest) {
+            this.servletRequest = servletRequest;
+        }
+
+        @Override
+        public KeycloakSecurityContext getSecurityContext() {
+            throw new IllegalStateException("Not yet implemented");
+        }
+
+        @Override
+        public Request getRequest() {
+            return new Request() {
+
+                @Override
+                public String getFirstParam(String param) {
+                    return servletRequest.getParameter(param);
+                }
+
+                @Override
+                public String getMethod() {
+                    return servletRequest.getMethod();
+                }
+
+                @Override
+                public String getURI() {
+                    return servletRequest.getRequestURL().toString();
+                }
+
+                @Override
+                public String getRelativePath() {
+                    return servletRequest.getServletPath();
+                }
+
+                @Override
+                public boolean isSecure() {
+                    return servletRequest.isSecure();
+                }
+
+                @Override
+                public String getQueryParamValue(String param) {
+                    return servletRequest.getParameter(param);
+                }
+
+                @Override
+                public Cookie getCookie(String cookieName) {
+                    return null;
+                }
+
+                @Override
+                public String getHeader(String name) {
+                    return servletRequest.getHeader(name);
+                }
+
+                @Override
+                public List<String> getHeaders(String name) {
+                    return null;
+                }
+
+                @Override
+                public InputStream getInputStream() {
+                    try {
+                        return servletRequest.getInputStream();
+                    } catch (IOException ioe) {
+                        throw new RuntimeException(ioe);
+                    }
+                }
+
+                @Override
+                public String getRemoteAddr() {
+                    return servletRequest.getRemoteAddr();
+                }
+
+                @Override
+                public void setError(AuthenticationError error) {
+                    servletRequest.setAttribute(AuthenticationError.class.getName(), error);
+
+                }
+
+                @Override
+                public void setError(LogoutError error) {
+                    servletRequest.setAttribute(LogoutError.class.getName(), error);
+                }
+
+            };
+        }
+
+        @Override
+        public Response getResponse() {
+            throw new IllegalStateException("Not yet implemented");
+        }
+
+        @Override
+        public X509Certificate[] getCertificateChain() {
+            throw new IllegalStateException("Not yet implemented");
+        }
+    }
+
+	
 }
