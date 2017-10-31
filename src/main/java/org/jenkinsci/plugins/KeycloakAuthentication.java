@@ -13,6 +13,7 @@ import org.keycloak.representations.IDToken;
 /**
  * 
  * @author Mohammad Nadeem
+ * @author dev.lauer@elnarion.de
  *
  */
 public class KeycloakAuthentication extends AbstractAuthenticationToken  {
@@ -20,12 +21,18 @@ public class KeycloakAuthentication extends AbstractAuthenticationToken  {
 
 	private static final long serialVersionUID = 1L;
 	private final String userName;
-	private String refreashToken;
+	private String refreshToken;
 	
-	public KeycloakAuthentication(IDToken idToken, AccessToken accessToken, String refreashToken) {
+	/**
+	 * Constructor
+	 * @param idToken the keycloak id token
+	 * @param accessToken the keycloak access token
+	 * @param refreshToken the keycloak refresh token
+	 */
+	public KeycloakAuthentication(IDToken idToken, AccessToken accessToken, String refreshToken) {
 		super(buildRoles(accessToken));
 		this.userName = idToken.getPreferredUsername();
-		this.refreashToken = refreashToken;
+		this.refreshToken = refreshToken;
 		setAuthenticated(true);
 	}
 
@@ -56,7 +63,11 @@ public class KeycloakAuthentication extends AbstractAuthenticationToken  {
 		return this.userName;
 	}
 
-	public String getRefreashToken() {
-		return refreashToken;
+	/**
+	 * Get the keycloak refresh token
+	 * @return {@link String} the refresh token
+	 */
+	public String getRefreshToken() {
+		return refreshToken;
 	}
 }
