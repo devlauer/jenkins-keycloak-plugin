@@ -208,6 +208,7 @@
 										</versionRange>
 										<goals>
 											<goal>display-info</goal>
+											<goal>enforce</goal>
 										</goals>
 									</pluginExecutionFilter>
 									<action>
