@@ -3,7 +3,8 @@
 Only noting significant user changes, not internal code cleanups and minor bug fixes.
 
 ## [Unreleased]
-Nothing
+- Updated Keycloak client version to 3.4.0.Final. Client is also compatible to 3.0.0 keycloak server.
+- Added filter and new configuration for token check on each request or after access token is expired to support global sign out (JENKINS-48158)
 
 ## [2.0.3] - 2017-07-16
 ###Changed
