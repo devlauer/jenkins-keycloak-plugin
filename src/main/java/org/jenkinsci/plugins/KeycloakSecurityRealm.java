@@ -89,13 +89,25 @@ import net.sf.json.JSONObject;
 public class KeycloakSecurityRealm extends SecurityRealm {
 
 	private static final String JENKINS_LOGIN_URL = "securityRealm/commenceLogin";
-	private static final String JENKINS_LOG_OUT_URL = "securityRealm/finishLogin";
+	/**
+	 * The default URL to finish the login process of this plugin
+	 */
+	public static final String JENKINS_FINISH_LOGIN_URL = "securityRealm/finishLogin";
+
+	/**
+	 * This constant is used to save the state of an authenticated session. If the
+	 * login process starts it is set to true, if a logout process is initiated it
+	 * is set to false.
+	 */
+	public static final String AUTH_REQUESTED = "AUTH_REQUESTED";
 
 	private static final Logger LOGGER = Logger.getLogger(KeycloakSecurityRealm.class.getName());
 
 	private static final String REFERER_ATTRIBUTE = KeycloakSecurityRealm.class.getName() + ".referer";
 
 	private transient KeycloakDeployment keycloakDeployment;
+
+	private transient RefreshFilter filter;
 
 	/**
 	 * Constructor
@@ -106,6 +118,31 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	@DataBoundConstructor
 	public KeycloakSecurityRealm() throws IOException {
 		super();
+		createFilter();
+	}
+
+	/*
+	 * hudson.security.SecurityRealm.createFilter(FilterConfig) extension point is
+	 * not used to leave this kind of handling unchanged. Hence, we are sticking
+	 * with the hudson.util.PluginServletFilter.addFilter(Filter) path.
+	 */
+	synchronized void createFilter() {
+		// restarts on things like plugin upgrade bypassed the call to the
+		// constructor, so filter initialization
+		// has to be driven in-line; note, after initial bring up, the filter
+		// variable will be set after subsequent
+		// jenkins restarts, but the addFilter call needs to be made on each
+		// restart, so we check flag to see if the filter
+		// has been ran through at least once
+		if (filter == null || !filter.isInitCalled()) {
+			try {
+				LOGGER.log(Level.INFO, "Create Filter");
+				filter = new RefreshFilter();
+				hudson.util.PluginServletFilter.addFilter(filter);
+			} catch (ServletException e) {
+				LOGGER.log(Level.SEVERE, "createFilter", e);
+			}
+		}
 	}
 
 	/**
@@ -132,7 +169,8 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 				.queryParam(OAuth2Constants.REDIRECT_URI, redirect).queryParam(OAuth2Constants.STATE, state)
 				.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE)
 				.queryParam(OAuth2Constants.SCOPE, scopeParam).build().toString();
-
+		request.getSession().setAttribute(AUTH_REQUESTED, Boolean.valueOf(true));
+		createFilter();
 		return new HttpRedirect(authUrl);
 
 	}
@@ -147,7 +185,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 			requestURL = requestURL.replace("http:", "https:");
 		}
 		KeycloakUriBuilder builder = KeycloakUriBuilder.fromUri(requestURL).replacePath(request.getContextPath())
-				.replaceQuery(null).path(JENKINS_LOG_OUT_URL);
+				.replaceQuery(null).path(JENKINS_FINISH_LOGIN_URL);
 		String redirect = builder.toTemplate();
 		return redirect;
 	}
@@ -183,7 +221,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 			String tokenString = tokenResponse.getToken();
 			String idTokenString = tokenResponse.getIdToken();
-			String refreashToken = tokenResponse.getRefreshToken();
+			String refreshToken = tokenResponse.getRefreshToken();
 
 			AccessToken token = AdapterRSATokenVerifier.verifyToken(tokenString, resolvedDeployment);
 			if (idTokenString != null) {
@@ -191,7 +229,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 				IDToken idToken = input.readJsonContent(IDToken.class);
 				SecurityContextHolder.getContext()
-						.setAuthentication(new KeycloakAuthentication(idToken, token, refreashToken));
+						.setAuthentication(new KeycloakAuthentication(idToken, token, refreshToken, tokenResponse));
 
 				User currentUser = User.current();
 				if (currentUser != null) {
@@ -225,6 +263,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 		String referer = (String) request.getSession().getAttribute(REFERER_ATTRIBUTE);
 		if (referer != null) {
+			LOGGER.log(Level.FINEST, "Redirecting to " + referer);
 			return HttpResponses.redirectTo(referer);
 		}
 		return HttpResponses.redirectToContextRoot();
@@ -242,13 +281,15 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 	@Override
 	public SecurityComponents createSecurityComponents() {
-		return new SecurityComponents(new AuthenticationManager() {
+		SecurityComponents sc = new SecurityComponents(new AuthenticationManager() {
 			public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-				if (authentication instanceof KeycloakAuthentication)
+				if (authentication instanceof KeycloakAuthentication) {
 					return authentication;
+				}
 				throw new BadCredentialsException("Unexpected authentication type: " + authentication);
 			}
 		});
+		return sc;
 	}
 
 	@Override
@@ -267,6 +308,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 				LOGGER.log(Level.SEVERE, "Logout Exception ", e);
 			}
 		}
+		req.getSession().setAttribute(AUTH_REQUESTED, Boolean.valueOf(false));
 		super.doLogout(req, rsp);
 	}
 
@@ -280,6 +322,8 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	public static class DescriptorImpl extends Descriptor<SecurityRealm> {
 
 		private String keycloakJson = "";
+		private boolean keycloakValidate = false;
+		private boolean keycloakRespectAccessTokenTimeout = true;
 
 		@Override
 		public String getHelpFile() {
@@ -302,6 +346,20 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		public boolean configure(StaplerRequest req, JSONObject json) throws hudson.model.Descriptor.FormException {
 			json = json.getJSONObject("keycloak");
 			keycloakJson = json.getString("keycloakJson");
+			// if json contains keycloakvalidate then keycloakvalidate is true
+			if (json.containsKey("keycloakValidate")) {
+				LOGGER.log(Level.FINE, "Keycloakvalidate set to true");
+				keycloakValidate = true;
+				JSONObject validate = json.getJSONObject("keycloakValidate");
+				if (validate.containsKey("keycloakRespectAccessTokenTimeout")) {
+					keycloakRespectAccessTokenTimeout = validate.getBoolean("keycloakRespectAccessTokenTimeout");
+					LOGGER.log(Level.FINE,
+							"Respect access token timeout is set to " + keycloakRespectAccessTokenTimeout);
+				}
+			} else {
+				keycloakValidate = false;
+				keycloakRespectAccessTokenTimeout = true;
+			}
 			save();
 			return true;
 		}
@@ -330,6 +388,47 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 				throws hudson.model.Descriptor.FormException {
 			return super.newInstance(req, formData);
 		}
+
+		/**
+		 * Returns the configuration parameter for the authentication check on each
+		 * request
+		 * 
+		 * @return {@link Boolean} if true, authentication is checked on each request
+		 */
+		public boolean isKeycloakValidate() {
+			return keycloakValidate;
+		}
+
+		/**
+		 * Sets the configuration parameter for the authentication check
+		 * 
+		 * @param keycloakValidate
+		 *            {@link Boolean} if true authentication is checked on each request
+		 */
+		public void setKeycloakValidate(boolean keycloakValidate) {
+			this.keycloakValidate = keycloakValidate;
+		}
+
+		/**
+		 * Returns the configuration parameter for the access token check
+		 * 
+		 * @return {@link Boolean} whether the expiration of the access token should be
+		 *         checked or not before a token refresh
+		 */
+		public boolean isKeycloakRespectAccessTokenTimeout() {
+			return keycloakRespectAccessTokenTimeout;
+		}
+
+		/**
+		 * Sets the configuration parameter for the access token check
+		 * 
+		 * @param keycloakRespectAccessTokenTimeout
+		 *            {@link Boolean} whether the expiration of the access token should
+		 *            be checked or not before a token refresh
+		 */
+		public void setKeycloakRespectAccessTokenTimeout(boolean keycloakRespectAccessTokenTimeout) {
+			this.keycloakRespectAccessTokenTimeout = keycloakRespectAccessTokenTimeout;
+		}
 	}
 
 	public DescriptorImpl getDescriptor() {
@@ -346,7 +445,31 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		return getDescriptor().getKeycloakJson();
 	}
 
-	private synchronized KeycloakDeployment getKeycloakDeployment() throws IOException {
+	/**
+	 * Returns true if authentication should be checked on each response
+	 * 
+	 * @return {@link Boolean}
+	 */
+	public boolean checkKeycloakOnEachRequest() {
+		return getDescriptor().isKeycloakValidate();
+	}
+
+	/**
+	 * Returns true if the access token should be only refreshed after its timeout
+	 * 
+	 * @return {@link Boolean}
+	 */
+	public boolean respectAccessTokenTimeout() {
+		return getDescriptor().isKeycloakRespectAccessTokenTimeout();
+	}
+
+	/**
+	 * Returns the current KeycloakDeployment configuration.
+	 * 
+	 * @return {@link KeycloakDeployment} the keycloak configuration
+	 * @throws IOException
+	 */
+	public synchronized KeycloakDeployment getKeycloakDeployment() throws IOException {
 		if (keycloakDeployment == null || keycloakDeployment.getClient() == null) {
 			AdapterConfig adapterConfig = JsonSerialization.readValue(getKeycloakJson(), AdapterConfig.class);
 			keycloakDeployment = KeycloakDeploymentBuilder.build(adapterConfig);

@@ -4,8 +4,14 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 	<f:section title="Global Keycloak Settings" name="keycloak" >
-		<f:entry title="Keycloak JSON"  field="keycloakJson" help="/plugin/keycloak/help/auth/keycloak-help.html">
+		<f:entry title="Keycloak JSON"  field="keycloakJson" help="/plugin/keycloak/help/auth/keycloak-json-help.html">
 			<f:textarea />
 		</f:entry>
+		
+		<f:optionalBlock title="Validate Token on each request"  field="keycloakValidate" help="/plugin/keycloak/help/auth/keycloak-validate-help.html">
+			<f:entry title="Keep login session open until access token times out?"  field="keycloakRespectAccessTokenTimeout" help="/plugin/keycloak/help/auth/keycloak-respectAccessTokenTimeout-help.html">
+				<f:checkbox/>
+			</f:entry>
+		</f:optionalBlock>
 	</f:section>
 </j:jelly>
