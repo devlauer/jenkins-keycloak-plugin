@@ -3,7 +3,12 @@
 Only noting significant user changes, not internal code cleanups and minor bug fixes.
 
 ## [Unreleased]
-Nothing
+- Nothing
+
+## [2.1.0] - 2017-12-01
+
+- Global sign out is now supported. Checks are done either on access token time out or on each user request (JENKINS-48158). To enable this feature please check new configuration elements in system configuration.
+- Updated Keycloak client version to 3.4.0.Final. Client is also compatible to 3.0.0 keycloak server.
 
 ## [2.0.3] - 2017-07-16
 ###Changed
