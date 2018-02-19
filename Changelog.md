@@ -5,6 +5,13 @@ Only noting significant user changes, not internal code cleanups and minor bug f
 ## [Unreleased]
 - Nothing
 
+## [2.1.1] - 2018-02-19
+
+- Fixed Plugin URL (Pull Request #1; thanks to rinrinne)
+- Validating adapter config before saving (Pull Request #2; thanks to rinrinne)
+- Updated Keycloak client version to 3.4.3.Final. Client is also compatible to 3.0.0 keycloak server.
+
+
 ## [2.1.0] - 2017-12-01
 
 - Global sign out is now supported. Checks are done either on access token time out or on each user request (JENKINS-48158). To enable this feature please check new configuration elements in system configuration.

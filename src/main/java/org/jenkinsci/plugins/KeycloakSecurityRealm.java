@@ -345,7 +345,11 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		}
 
 		/**
-		 * Validator for keycloakJson
+		 * Validate keycloakJson
+		 * 
+		 * @param value String the form field value to validate
+		 * @return {@link FormValidation} the validation result
+		 * @throws ServletException 
 		*/
 		public FormValidation doCheckKeycloakJson(@QueryParameter String value) throws ServletException {
 			try {
