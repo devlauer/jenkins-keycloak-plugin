@@ -13,5 +13,9 @@
 				<f:checkbox/>
 			</f:entry>
 		</f:optionalBlock>
+        
+        <f:entry title="Use default IDP"  field="keycloakIdp" help="/plugin/keycloak/help/auth/keycloak-idp-help.html">
+            <f:textbox/>
+        </f:entry>
 	</f:section>
 </j:jelly>

@@ -166,11 +166,16 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 		String state = UUID.randomUUID().toString();
 
-		String authUrl = getKeycloakDeployment().getAuthUrl().clone()
+        KeycloakUriBuilder builder = getKeycloakDeployment().getAuthUrl().clone()
 				.queryParam(OAuth2Constants.CLIENT_ID, getKeycloakDeployment().getResourceName())
 				.queryParam(OAuth2Constants.REDIRECT_URI, redirect).queryParam(OAuth2Constants.STATE, state)
 				.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE)
-				.queryParam(OAuth2Constants.SCOPE, scopeParam).build().toString();
+				.queryParam(OAuth2Constants.SCOPE, scopeParam);
+        String keycloakIdp = getKeycloakIdp();
+        if (!"".equals(keycloakIdp)) {
+            builder.queryParam("kc_idp_hint", keycloakIdp);
+        }
+		String authUrl = builder.build().toString();
 		request.getSession().setAttribute(AUTH_REQUESTED, Boolean.valueOf(true));
 		createFilter();
 		return new HttpRedirect(authUrl);
@@ -324,6 +329,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	public static class DescriptorImpl extends Descriptor<SecurityRealm> {
 
 		private String keycloakJson = "";
+        private String keycloakIdp = "";
 		private boolean keycloakValidate = false;
 		private boolean keycloakRespectAccessTokenTimeout = true;
 
@@ -366,6 +372,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		public boolean configure(StaplerRequest req, JSONObject json) throws hudson.model.Descriptor.FormException {
 			json = json.getJSONObject("keycloak");
 			keycloakJson = json.getString("keycloakJson");
+            keycloakIdp = json.getString("keycloakIdp");
 			// if json contains keycloakvalidate then keycloakvalidate is true
 			if (json.containsKey("keycloakValidate")) {
 				LOGGER.log(Level.FINE, "Keycloakvalidate set to true");
@@ -383,7 +390,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 			save();
 			return true;
 		}
-
+        
 		/**
 		 * Returns the keycloak configuration
 		 * 
@@ -449,6 +456,17 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		public void setKeycloakRespectAccessTokenTimeout(boolean keycloakRespectAccessTokenTimeout) {
 			this.keycloakRespectAccessTokenTimeout = keycloakRespectAccessTokenTimeout;
 		}
+        
+        
+        
+
+		public String getKeycloakIdp() {
+			return keycloakIdp;
+		}
+
+		public void setKeycloakIdp(String keycloakIdp) {
+			this.keycloakIdp = keycloakIdp;
+		}
 	}
 
 	public DescriptorImpl getDescriptor() {
@@ -463,6 +481,10 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	 */
 	public String getKeycloakJson() {
 		return getDescriptor().getKeycloakJson();
+	}
+    
+    public String getKeycloakIdp() {
+		return getDescriptor().getKeycloakIdp();
 	}
 
 	/**
