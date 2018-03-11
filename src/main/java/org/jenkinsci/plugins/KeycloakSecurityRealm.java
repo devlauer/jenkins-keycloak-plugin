@@ -172,7 +172,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 				.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE)
 				.queryParam(OAuth2Constants.SCOPE, scopeParam);
         String keycloakIdp = getKeycloakIdp();
-        if (!"".equals(keycloakIdp)) {
+        if (!"".equals(keycloakIdp)&&(keycloakIdp!=null)) {
             builder.queryParam("kc_idp_hint", keycloakIdp);
         }
 		String authUrl = builder.build().toString();
