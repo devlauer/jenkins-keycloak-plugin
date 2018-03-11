@@ -19,7 +19,6 @@ import org.keycloak.representations.IDToken;
  * @author dev.lauer@elnarion.de
  *
  */
-@SuppressWarnings("unused")
 public class KeycloakAuthentication extends AbstractAuthenticationToken  {
 
 

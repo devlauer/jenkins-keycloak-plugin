@@ -460,10 +460,21 @@ public class KeycloakSecurityRealm extends SecurityRealm {
         
         
 
+		/**
+		 * Returns the keycloak idp hint.
+		 * 
+		 * @return {@link String} the keycloak idp hint
+		 */
 		public String getKeycloakIdp() {
 			return keycloakIdp;
 		}
 
+		/**
+		 * Sets the keycloak idp hint.
+		 * 
+		 * @param keycloakIdp {@link String} the keycloak idp hint
+		 * 
+		 */
 		public void setKeycloakIdp(String keycloakIdp) {
 			this.keycloakIdp = keycloakIdp;
 		}
@@ -483,6 +494,10 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		return getDescriptor().getKeycloakJson();
 	}
     
+    /**
+     * Returns the keycloak idp hint - used as parameter in the url
+     * @return {@link String} the keycloak idp hint
+     */
     public String getKeycloakIdp() {
 		return getDescriptor().getKeycloakIdp();
 	}
