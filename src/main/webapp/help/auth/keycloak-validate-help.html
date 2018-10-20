@@ -1,0 +1,12 @@
+<div>If set to true, the plugin validates the keycloak token after
+	the access token expires or on each request depending on the access
+	token configuration. This is necessary if you want to implement a
+	global/single sign out scenario with keycloak, because this plugin does
+	not support a back channel logout.</div>
+
+<div>If set to false (default), the plugin only validates the
+	keycloak authentication at the beginning of the session. Afterwards no
+	validation takes place, so the user could log out in keycloak or the
+	access token could timeout in the meantime, but the user stays logged
+	in in jenkins. This will be true until the user logs out in jenkins or
+	the users session in jenkins times out.</div>
