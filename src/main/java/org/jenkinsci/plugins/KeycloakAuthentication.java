@@ -47,11 +47,19 @@ public class KeycloakAuthentication extends AbstractAuthenticationToken  {
 	private static GrantedAuthority[] buildRoles(AccessToken accessToken) {
 		List<GrantedAuthority> roles;
 		roles = new ArrayList<GrantedAuthority>();
+
 		if (accessToken != null && accessToken.getRealmAccess() != null) {
 			for (String role : accessToken.getRealmAccess().getRoles()) {
 				roles.add(new GrantedAuthorityImpl(role));
 			}
 		}
+
+		if(accessToken != null && accessToken.getOtherClaims().containsKey("roles")) {
+			for(String role : (List<String>) accessToken.getOtherClaims().get("roles")) {
+				roles.add(new GrantedAuthorityImpl(role));
+			}
+		}
+
 		roles.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
 		return roles.toArray(new GrantedAuthority[roles.size()]);
 	}
