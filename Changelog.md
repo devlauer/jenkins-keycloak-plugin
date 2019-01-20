@@ -6,6 +6,12 @@ Only noting significant user changes, not internal code cleanups and minor bug f
 - Nothing
 
 
+## [2.3.0] - 2019-01-20
+- [JENKINS-55669] Fix authentication loop  (Pull Request #5; thanks to Wadeck)
+- Add support for pulling authorities from a "roles" claim (Pull Request #4; thanks to imduffy15)
+- Updated Keycloak client version to 4.8.0.Final. 
+
+
 ## [2.2.0] - 2018-03-11
 - Added IDP feature in Auth url (Pull Request #3; thanks to gigaga)
 

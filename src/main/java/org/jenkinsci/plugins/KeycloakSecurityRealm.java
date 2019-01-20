@@ -51,7 +51,7 @@ import org.keycloak.adapters.KeycloakDeploymentBuilder;
 import org.keycloak.adapters.OIDCHttpFacade;
 import org.keycloak.adapters.ServerRequest;
 import org.keycloak.adapters.ServerRequest.HttpFailure;
-import org.keycloak.adapters.rotation.AdapterRSATokenVerifier;
+import org.keycloak.adapters.rotation.AdapterTokenVerifier;
 import org.keycloak.adapters.spi.AuthenticationError;
 import org.keycloak.adapters.spi.LogoutError;
 import org.keycloak.common.util.KeycloakUriBuilder;
@@ -231,7 +231,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 			String idTokenString = tokenResponse.getIdToken();
 			String refreshToken = tokenResponse.getRefreshToken();
 
-			AccessToken token = AdapterRSATokenVerifier.verifyToken(tokenString, resolvedDeployment);
+			AccessToken token = AdapterTokenVerifier.verifyToken(tokenString, resolvedDeployment);
 			if (idTokenString != null) {
 				JWSInput input = new JWSInput(idTokenString);
 
@@ -630,6 +630,15 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 				@Override
 				public void setError(LogoutError error) {
 					servletRequest.setAttribute(LogoutError.class.getName(), error);
+				}
+
+				@Override
+				public InputStream getInputStream(boolean buffered) {
+					try {
+						return servletRequest.getInputStream();
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
 				}
 
 			};

@@ -28,8 +28,21 @@ import org.acegisecurity.userdetails.User;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
+/**
+ * The Class KeycloakUserDetails.
+ * 
+ * @author Wadeck Follonier
+ */
 @Restricted(NoExternalUse.class)
 public class KeycloakUserDetails extends User {
+    
+    /**
+	 * Instantiates a new keycloak user details.
+	 *
+	 * @param username    the username
+	 * @param authorities the authorities
+	 * @throws IllegalArgumentException the illegal argument exception
+	 */
     public KeycloakUserDetails(String username, GrantedAuthority[] authorities) throws IllegalArgumentException {
         super(username, "", true, true, true, true, authorities);
     }
