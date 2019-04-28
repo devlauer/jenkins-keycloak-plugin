@@ -9,7 +9,7 @@
 	</parent>
 
 	<artifactId>keycloak</artifactId>
-	<version>2.2.1-SNAPSHOT</version>
+	<version>2.3.1-SNAPSHOT</version>
 	<name>Keycloak Authentication Plugin</name>
 	<description>Integrates with Keycloak Authentication</description>
 	<packaging>hpi</packaging>
@@ -24,7 +24,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<keycloak.version>3.4.3.Final</keycloak.version>
+		<keycloak.version>4.8.0.Final</keycloak.version>
 		<jenkins.version>1.625.3</jenkins.version>
 		<jenkins-test-harness.version>2.13</jenkins-test-harness.version>
 	</properties>
