@@ -3,7 +3,9 @@
 Only noting significant user changes, not internal code cleanups and minor bug fixes.
 
 ## [Unreleased]
-- Nothing
+- Updated Keycloak client version to 8.0.2
+- Switched Java Version to 8 (from 7) 
+- Added maintenance hint in README
 
 
 ## [2.3.0] - 2019-01-20
