@@ -37,6 +37,11 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 public class KeycloakUserDetails extends User {
     
     /**
+	 *
+	 */
+	private static final long serialVersionUID = 1L;
+
+	/**
 	 * Instantiates a new keycloak user details.
 	 *
 	 * @param username    the username
