@@ -1,0 +1,4 @@
+keycloakJson: "{\"realm\": \"master\",\"auth-server-url\": \"https://keycloak.example.com/auth/\"\
+  ,\"ssl-required\": \"external\",\"resource\": \"ci-example-com\",\"credentials\"\
+  : {\"secret\": \"secret-secret-secret\"},\"confidential-port\":\
+  \ 0}"
