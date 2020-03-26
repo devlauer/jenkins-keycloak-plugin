@@ -19,7 +19,58 @@ Installation
 
 Usage
 ---
-For usage information please refer the offical [wiki]
+
+You can watch the screencast in
+**[Vimeo](https://vimeo.com/116429910)****/****[YouTube](https://www.youtube.com/watch?v=_WAFuOa53R0)**** ****(You
+may have to put the speaker in high volume)**
+
+**(applies only to the older plugin version)**
+
+**Usage of the newer version:**
+
+#### Step 1 : Create a keycloak client in a realm
+
+Lets call the realm **'ci'** and the client **'jenkins'**  
+![](docs/images/Usage_1.JPG)
+
+Jenkins is running on port **8080**
+
+![](docs/images/Usage_2.JPG)
+
+Create the client accordingly
+
+![](docs/images/Usage_1.2.JPG)
+
+![](docs/images/Usage_1.3.JPG)
+
+Also make sure sample users are also created, in this case I have
+created 'devlauer'.
+
+#### Step 2 : Copy the keycloak.json
+
+![](docs/images/Usage_3.JPG)
+
+#### Step 3 : In the Jenkins global settings page paste the content
+
+![](docs/images/Usage_4.JPG)
+
+#### Step 4 : In the Security Realm activate the security realm of the plugin
+
+![](docs/images/Usage_5.JPG)
+
+#### Step 5 : Login into jenkins
+
+![](docs/images/kj6.png)
+
+User would be redirected to keycloak for authentication
+
+![](docs/images/Usage_6.JPG)
+
+#### Step 7 : Keycloak would redirect back to jenkins
+
+User would be redirected back to callback URL
+
+![](docs/images/Usage_7.JPG)  
 
 License
 ---
