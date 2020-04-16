@@ -5,7 +5,6 @@ import io.jenkins.plugins.casc.ConfiguratorRegistry;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import io.jenkins.plugins.casc.model.CNode;
-import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
 import org.junit.Rule;
 import org.junit.Test;
@@ -24,9 +23,16 @@ public class KeycloakSecurityRealmTest {
     public void configure_keycloak() {
         final Jenkins jenkins = Jenkins.getInstance();
         final KeycloakSecurityRealm securityRealm = (KeycloakSecurityRealm) jenkins.getSecurityRealm();
-        assertEquals(1, securityRealm.getKeycloakJson());
-        assertTrue(securityRealm.getUserIdStrategy() instanceof IdStrategy.CaseInsensitive);
-        assertTrue(securityRealm.getGroupIdStrategy() instanceof IdStrategy.CaseSensitive);
+        assertEquals("{\n" +
+			"  \"realm\": \"master\",\n" +
+			"  \"auth-server-url\": \"https://keycloak.example.com/auth/\",\n" +
+			"  \"ssl-required\": \"external\",\n" +
+			"  \"resource\": \"ci-example-com\",\n" +
+			"  \"credentials\": {\n" +
+			"    \"secret\": \"secret-secret-secret\"\n" +
+			"  },\n" +
+			"  \"confidential-port\": 0\n" +
+			"}", securityRealm.getKeycloakJson());
     }
 
     @Test
