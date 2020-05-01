@@ -385,8 +385,6 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		@Override
 		public boolean configure(StaplerRequest req, JSONObject json) throws hudson.model.Descriptor.FormException {
 			json = json.getJSONObject("keycloak");
-			String keycloakJson = json.getString("keycloakJson");
-            String keycloakIdp = json.getString("keycloakIdp");
 			// if json contains keycloakvalidate then keycloakvalidate is true
 			if (json.containsKey("keycloakValidate")) {
 				LOGGER.log(Level.FINE, "Keycloakvalidate set to true");
