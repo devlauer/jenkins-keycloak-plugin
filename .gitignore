@@ -5,3 +5,5 @@
 work
 bin
 /update-center.key
+.factorypath
+.vscode/settings.json
