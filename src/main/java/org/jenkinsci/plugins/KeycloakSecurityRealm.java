@@ -37,6 +37,7 @@ import javax.security.cert.X509Certificate;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
+import com.google.common.base.Strings;
 import jenkins.security.SecurityListener;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
@@ -62,7 +63,10 @@ import org.keycloak.representations.IDToken;
 import org.keycloak.representations.adapters.config.AdapterConfig;
 import org.keycloak.util.JsonSerialization;
 import org.keycloak.util.TokenUtil;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
@@ -111,6 +115,11 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	private transient KeycloakDeployment keycloakDeployment;
 
 	private transient RefreshFilter filter;
+
+	private String keycloakJson = "";
+	private String keycloakIdp = "";
+	private boolean keycloakValidate = false;
+	private boolean keycloakRespectAccessTokenTimeout = true;
 
 	/**
 	 * Constructor
@@ -333,13 +342,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	 *
 	 */
 	@Extension
-	public static class DescriptorImpl extends Descriptor<SecurityRealm> {
-
-		private String keycloakJson = "";
-        private String keycloakIdp = "";
-		private boolean keycloakValidate = false;
-		private boolean keycloakRespectAccessTokenTimeout = true;
-
+	public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
 		@Override
 		public String getHelpFile() {
 			return "/plugin/keycloak/help/help-security-realm.html";
@@ -354,7 +357,11 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		 * Constructor
 		 */
 		public DescriptorImpl() {
-			load();
+			super();
+		}
+
+		public DescriptorImpl(Class<? extends SecurityRealm> clazz) {
+			super(clazz);
 		}
 
 		/**
@@ -378,153 +385,135 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		@Override
 		public boolean configure(StaplerRequest req, JSONObject json) throws hudson.model.Descriptor.FormException {
 			json = json.getJSONObject("keycloak");
-			keycloakJson = json.getString("keycloakJson");
-            keycloakIdp = json.getString("keycloakIdp");
 			// if json contains keycloakvalidate then keycloakvalidate is true
 			if (json.containsKey("keycloakValidate")) {
 				LOGGER.log(Level.FINE, "Keycloakvalidate set to true");
-				keycloakValidate = true;
+				json.put("keycloakValidate", true);
 				JSONObject validate = json.getJSONObject("keycloakValidate");
 				if (validate.containsKey("keycloakRespectAccessTokenTimeout")) {
-					keycloakRespectAccessTokenTimeout = validate.getBoolean("keycloakRespectAccessTokenTimeout");
-					LOGGER.log(Level.FINE,
-							"Respect access token timeout is set to " + keycloakRespectAccessTokenTimeout);
+					json.put("keycloakRespectAccessTokenTimeout", validate.getBoolean("keycloakRespectAccessTokenTimeout"));
+					LOGGER.log(Level.FINE, "Respect access token timeout is set to " + validate.getBoolean("keycloakRespectAccessTokenTimeout"));
 				}
 			} else {
-				keycloakValidate = false;
-				keycloakRespectAccessTokenTimeout = true;
+				json.put("keycloakValidate", false);
+				json.put("keycloakRespectAccessTokenTimeout", true);
 			}
-			save();
-			return true;
-		}
-        
-		/**
-		 * Returns the keycloak configuration
-		 * 
-		 * @return {@link String} the configuration string
-		 */
-		public String getKeycloakJson() {
-			return keycloakJson;
+			return super.configure(req, json);
 		}
 
-		/**
-		 * Sets the keycloak json configuration string
-		 * 
-		 * @param keycloakJson
-		 *            the configuration
-		 */
-		public void setKeycloakJson(String keycloakJson) {
-			this.keycloakJson = keycloakJson;
-		}
-
-		@Override
-		public SecurityRealm newInstance(StaplerRequest req, JSONObject formData)
-				throws hudson.model.Descriptor.FormException {
-			return super.newInstance(req, formData);
-		}
-
-		/**
-		 * Returns the configuration parameter for the authentication check on each
-		 * request
-		 * 
-		 * @return {@link Boolean} if true, authentication is checked on each request
-		 */
-		public boolean isKeycloakValidate() {
-			return keycloakValidate;
-		}
-
-		/**
-		 * Sets the configuration parameter for the authentication check
-		 * 
-		 * @param keycloakValidate
-		 *            {@link Boolean} if true authentication is checked on each request
-		 */
-		public void setKeycloakValidate(boolean keycloakValidate) {
-			this.keycloakValidate = keycloakValidate;
-		}
-
-		/**
-		 * Returns the configuration parameter for the access token check
-		 * 
-		 * @return {@link Boolean} whether the expiration of the access token should be
-		 *         checked or not before a token refresh
-		 */
-		public boolean isKeycloakRespectAccessTokenTimeout() {
-			return keycloakRespectAccessTokenTimeout;
-		}
-
-		/**
-		 * Sets the configuration parameter for the access token check
-		 * 
-		 * @param keycloakRespectAccessTokenTimeout
-		 *            {@link Boolean} whether the expiration of the access token should
-		 *            be checked or not before a token refresh
-		 */
-		public void setKeycloakRespectAccessTokenTimeout(boolean keycloakRespectAccessTokenTimeout) {
-			this.keycloakRespectAccessTokenTimeout = keycloakRespectAccessTokenTimeout;
-		}
-        
-        
-        
-
-		/**
-		 * Returns the keycloak idp hint.
-		 * 
-		 * @return {@link String} the keycloak idp hint
-		 */
-		public String getKeycloakIdp() {
-			return keycloakIdp;
-		}
-
-		/**
-		 * Sets the keycloak idp hint.
-		 * 
-		 * @param keycloakIdp {@link String} the keycloak idp hint
-		 * 
-		 */
-		public void setKeycloakIdp(String keycloakIdp) {
-			this.keycloakIdp = keycloakIdp;
-		}
-	}
-
-	public DescriptorImpl getDescriptor() {
-		return (DescriptorImpl) super.getDescriptor();
-
+		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
+		@Deprecated
+		public transient String keycloakJson = "";
+		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
+		@Deprecated
+		public transient String keycloakIdp = "";
+		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
+		@Deprecated
+		public transient boolean keycloakValidate = false;
+		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
+		@Deprecated
+		public transient boolean keycloakRespectAccessTokenTimeout = true;
 	}
 
 	/**
-	 * Returns the keycloak json configuration
-	 * 
-	 * @return {@link String} the json configuration
+	 * Returns the keycloak configuration
+	 *
+	 * @return {@link String} the configuration string
 	 */
 	public String getKeycloakJson() {
-		return getDescriptor().getKeycloakJson();
+		return keycloakJson;
 	}
-    
-    /**
-     * Returns the keycloak idp hint - used as parameter in the url
-     * @return {@link String} the keycloak idp hint
-     */
-    public String getKeycloakIdp() {
-		return getDescriptor().getKeycloakIdp();
+
+	/**
+	 * Sets the keycloak json configuration string
+	 *
+	 * @param keycloakJson
+	 *            the configuration
+	 */
+	@DataBoundSetter
+	public void setKeycloakJson(String keycloakJson) {
+		this.keycloakJson = keycloakJson;
+	}
+
+	/**
+	 * Returns the configuration parameter for the authentication check on each
+	 * request
+	 *
+	 * @return {@link Boolean} if true, authentication is checked on each request
+	 */
+	public boolean isKeycloakValidate() {
+		return keycloakValidate;
+	}
+
+	/**
+	 * Sets the configuration parameter for the authentication check
+	 *
+	 * @param keycloakValidate
+	 *            {@link Boolean} if true authentication is checked on each request
+	 */
+	@DataBoundSetter
+	public void setKeycloakValidate(boolean keycloakValidate) {
+		this.keycloakValidate = keycloakValidate;
+	}
+
+	/**
+	 * Returns the configuration parameter for the access token check
+	 *
+	 * @return {@link Boolean} whether the expiration of the access token should be
+	 *         checked or not before a token refresh
+	 */
+	public boolean isKeycloakRespectAccessTokenTimeout() {
+		return keycloakRespectAccessTokenTimeout;
+	}
+
+	/**
+	 * Sets the configuration parameter for the access token check
+	 *
+	 * @param keycloakRespectAccessTokenTimeout
+	 *            {@link Boolean} whether the expiration of the access token should
+	 *            be checked or not before a token refresh
+	 */
+	@DataBoundSetter
+	public void setKeycloakRespectAccessTokenTimeout(boolean keycloakRespectAccessTokenTimeout) {
+		this.keycloakRespectAccessTokenTimeout = keycloakRespectAccessTokenTimeout;
+	}
+
+	/**
+	 * Returns the keycloak idp hint.
+	 *
+	 * @return {@link String} the keycloak idp hint
+	 */
+	public String getKeycloakIdp() {
+		return keycloakIdp;
+	}
+
+	/**
+	 * Sets the keycloak idp hint.
+	 *
+	 * @param keycloakIdp {@link String} the keycloak idp hint
+	 *
+	 */
+	@DataBoundSetter
+	public void setKeycloakIdp(String keycloakIdp) {
+		this.keycloakIdp = keycloakIdp;
 	}
 
 	/**
 	 * Returns true if authentication should be checked on each response
-	 * 
+	 *
 	 * @return {@link Boolean}
 	 */
 	public boolean checkKeycloakOnEachRequest() {
-		return getDescriptor().isKeycloakValidate();
+		return isKeycloakValidate();
 	}
 
 	/**
 	 * Returns true if the access token should be only refreshed after its timeout
-	 * 
+	 *
 	 * @return {@link Boolean}
 	 */
 	public boolean respectAccessTokenTimeout() {
-		return getDescriptor().isKeycloakRespectAccessTokenTimeout();
+		return isKeycloakRespectAccessTokenTimeout();
 	}
 
 	/**
@@ -653,6 +642,21 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		public X509Certificate[] getCertificateChain() {
 			throw new IllegalStateException("Not yet implemented");
 		}
+	}
+
+	private Object readResolve() {
+		if (Strings.isNullOrEmpty(this.keycloakJson)) {
+			getDescriptor().load();
+			DescriptorImpl descriptor = ((DescriptorImpl) getDescriptor());
+			System.out.println("Moo -- " + descriptor.keycloakJson);
+			if (!Strings.isNullOrEmpty(descriptor.keycloakJson)) {
+				this.keycloakJson = descriptor.keycloakJson;
+				this.keycloakIdp = descriptor.keycloakIdp;
+				this.keycloakValidate = descriptor.keycloakValidate;
+				this.keycloakRespectAccessTokenTimeout = descriptor.keycloakRespectAccessTokenTimeout;
+			}
+		}
+		return this;
 	}
 
 }
