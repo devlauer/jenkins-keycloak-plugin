@@ -3,7 +3,7 @@
 Only noting significant user changes, not internal code cleanups and minor bug fixes.
 
 ## [Unreleased]
-- Nothing
+- Added wiki documentation to project (Pull Request #6; thanks to halkeye)
 
 
 ## [2.3.0] - 2019-01-20
