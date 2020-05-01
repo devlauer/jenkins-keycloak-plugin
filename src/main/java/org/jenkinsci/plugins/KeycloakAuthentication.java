@@ -44,6 +44,7 @@ public class KeycloakAuthentication extends AbstractAuthenticationToken  {
 		setAuthenticated(true);
 	}
 
+	@SuppressWarnings("unchecked")
 	private static GrantedAuthority[] buildRoles(AccessToken accessToken) {
 		List<GrantedAuthority> roles;
 		roles = new ArrayList<GrantedAuthority>();

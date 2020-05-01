@@ -1,5 +1,13 @@
 # Keycloak Plugin
 
+---
+**NOTE**
+
+This plugin is not actively maintained anymore. 
+
+---
+
+
 <img src="https://jenkins.io/images/226px-Jenkins_logo.svg.png" alt="" width="100" /><img src="https://github.com/keycloak/keycloak/raw/master/themes/src/main/resources/theme/keycloak/welcome/resources/keycloak_logo.png" alt="" width="250" />
 
 
