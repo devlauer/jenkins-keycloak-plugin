@@ -26,24 +26,31 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
+import com.google.common.base.Strings;
+import hudson.Extension;
+import hudson.model.Descriptor;
+import hudson.model.User;
+import hudson.security.AbstractPasswordBasedSecurityRealm;
+import hudson.security.GroupDetails;
+import hudson.security.SecurityRealm;
+import hudson.tasks.Mailer;
+import hudson.util.FormValidation;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.security.cert.X509Certificate;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
-
-import com.google.common.base.Strings;
 import jenkins.security.SecurityListener;
+import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
-import org.acegisecurity.AuthenticationManager;
-import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.acegisecurity.userdetails.UserDetails;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.adapters.AdapterDeploymentContext;
@@ -74,14 +81,8 @@ import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-
-import hudson.Extension;
-import hudson.model.Descriptor;
-import hudson.model.User;
-import hudson.security.SecurityRealm;
-import hudson.tasks.Mailer;
-import hudson.util.FormValidation;
-import net.sf.json.JSONObject;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataRetrievalFailureException;
 
 /**
  *
@@ -93,7 +94,7 @@ import net.sf.json.JSONObject;
  * 
  * @author Mohammad Nadeem, devlauer
  */
-public class KeycloakSecurityRealm extends SecurityRealm {
+public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
 	private static final String JENKINS_LOGIN_URL = "securityRealm/commenceLogin";
 	/**
@@ -304,14 +305,9 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 	@Override
 	public SecurityComponents createSecurityComponents() {
-		SecurityComponents sc = new SecurityComponents(new AuthenticationManager() {
-			public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-				if (authentication instanceof KeycloakAuthentication) {
-					return authentication;
-				}
-				throw new BadCredentialsException("Unexpected authentication type: " + authentication);
-			}
-		});
+		KeycloakUserDetailsService userDetailsService = new KeycloakUserDetailsService(this);
+		KeycloakAuthenticationManager authenticationManager = new KeycloakAuthenticationManager(this);
+		SecurityComponents sc = new SecurityComponents(authenticationManager, userDetailsService);
 		return sc;
 	}
 
@@ -333,6 +329,35 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		}
 		req.getSession().setAttribute(AUTH_REQUESTED, Boolean.valueOf(false));
 		super.doLogout(req, rsp);
+	}
+
+	@Override
+	protected UserDetails authenticate( String username, String password ) throws AuthenticationException {
+		LOGGER.info( "KeycloakSecurityRealm.authenticate: " + username );
+		try {
+			KeycloakAccess keycloakAccess = new KeycloakAccess( getKeycloakDeployment() );
+			return keycloakAccess.authenticate( username, password );
+		} catch ( IOException e ) {
+			LOGGER.log( Level.WARNING, "Unable to authenticate: " + username, e );
+			throw new DataRetrievalFailureException( "Unable to authenticate: " + username, e );
+		}
+	}
+
+	@Override
+	public UserDetails loadUserByUsername( String username ) throws UsernameNotFoundException, DataAccessException {
+		return getSecurityComponents().userDetails.loadUserByUsername( username );
+	}
+
+	@Override
+	public GroupDetails loadGroupByGroupname( String groupName ) throws UsernameNotFoundException, DataAccessException {
+		LOGGER.info( "KeycloakSecurityRealm.loadGroupByGroupname: " + groupName );
+		try {
+			KeycloakAccess keycloakAccess = new KeycloakAccess( getKeycloakDeployment() );
+			return keycloakAccess.loadGroupByGroupname( groupName );
+		} catch ( IOException e ) {
+			LOGGER.log( Level.WARNING, "Unable to get role information from Keycloak for: " + groupName, e );
+			throw new DataRetrievalFailureException( "Unable to get role information from Keycloak for: " + groupName, e );
+		}
 	}
 
 	/**
