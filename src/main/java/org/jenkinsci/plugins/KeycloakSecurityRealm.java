@@ -1,25 +1,25 @@
 /**
  The MIT License
 
-Copyright (c) 2011 Michael O'Cleirigh
+ Copyright (c) 2011 Michael O'Cleirigh
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
 
 
 
@@ -91,7 +91,7 @@ import org.springframework.dao.DataRetrievalFailureException;
  *
  * This is based on the MySQLSecurityRealm from the mysql-auth-plugin written by
  * Alex Ackerman.
- * 
+ *
  * @author Mohammad Nadeem, devlauer
  */
 public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
@@ -124,7 +124,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @throws IOException
 	 *             -
 	 */
@@ -169,7 +169,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 	 * @throws IOException
 	 */
 	public HttpResponse doCommenceLogin(StaplerRequest request, StaplerResponse response,
-			@Header("Referer") final String referer) throws IOException {
+		@Header("Referer") final String referer) throws IOException {
 		request.getSession().setAttribute(REFERER_ATTRIBUTE, referer);
 
 		String scopeParam = TokenUtil.attachOIDCScope(null);
@@ -177,15 +177,15 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
 		String state = UUID.randomUUID().toString();
 
-        KeycloakUriBuilder builder = getKeycloakDeployment().getAuthUrl().clone()
-				.queryParam(OAuth2Constants.CLIENT_ID, getKeycloakDeployment().getResourceName())
-				.queryParam(OAuth2Constants.REDIRECT_URI, redirect).queryParam(OAuth2Constants.STATE, state)
-				.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE)
-				.queryParam(OAuth2Constants.SCOPE, scopeParam);
-        String keycloakIdp = getKeycloakIdp();
-        if (!"".equals(keycloakIdp)&&(keycloakIdp!=null)) {
-            builder.queryParam("kc_idp_hint", keycloakIdp);
-        }
+		KeycloakUriBuilder builder = getKeycloakDeployment().getAuthUrl().clone()
+			.queryParam(OAuth2Constants.CLIENT_ID, getKeycloakDeployment().getResourceName())
+			.queryParam(OAuth2Constants.REDIRECT_URI, redirect).queryParam(OAuth2Constants.STATE, state)
+			.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE)
+			.queryParam(OAuth2Constants.SCOPE, scopeParam);
+		String keycloakIdp = getKeycloakIdp();
+		if (!"".equals(keycloakIdp)&&(keycloakIdp!=null)) {
+			builder.queryParam("kc_idp_hint", keycloakIdp);
+		}
 		String authUrl = builder.build().toString();
 		request.getSession().setAttribute(AUTH_REQUESTED, Boolean.valueOf(true));
 		createFilter();
@@ -199,11 +199,11 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 		// if a reverse proxy with ssl is used, the redirect should point to
 		// https
 		if (refererURL != null && requestURL != null && refererURL.startsWith("https:")
-				&& requestURL.startsWith("http:")) {
+			&& requestURL.startsWith("http:")) {
 			requestURL = requestURL.replace("http:", "https:");
 		}
 		KeycloakUriBuilder builder = KeycloakUriBuilder.fromUri(requestURL).replacePath(request.getContextPath())
-				.replaceQuery(null).path(JENKINS_FINISH_LOGIN_URL);
+			.replaceQuery(null).path(JENKINS_FINISH_LOGIN_URL);
 		String redirect = builder.toTemplate();
 		return redirect;
 	}
@@ -216,7 +216,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 	/**
 	 * This is where the user comes back to at the end of the OpenID redirect
 	 * ping-pong.
-	 * 
+	 *
 	 * @param request
 	 *            the Jenkins request
 	 * @return {@link HttpResponse} the response
@@ -235,7 +235,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 			LOGGER.log(Level.FINE, "TokenURL" + resolvedDeployment.getTokenUrl());
 
 			AccessTokenResponse tokenResponse = ServerRequest.invokeAccessCodeToToken(resolvedDeployment,
-					request.getParameter(OAuth2Constants.CODE), redirect, null);
+				request.getParameter(OAuth2Constants.CODE), redirect, null);
 
 			String tokenString = tokenResponse.getToken();
 			String idTokenString = tokenResponse.getIdToken();
@@ -259,7 +259,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 					}
 
 					KeycloakUserDetails userDetails = new KeycloakUserDetails(
-							idToken.getPreferredUsername(), auth.getAuthorities()
+						idToken.getPreferredUsername(), auth.getAuthorities()
 					);
 					SecurityListener.fireAuthenticated(userDetails);
 				}
@@ -362,7 +362,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
 	/**
 	 * Descriptor definition for Jenkins
-	 * 
+	 *
 	 * @author dev.lauer@elnarion.de
 	 *
 	 */
@@ -391,11 +391,11 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
 		/**
 		 * Validate keycloakJson
-		 * 
+		 *
 		 * @param value String the form field value to validate
 		 * @return {@link FormValidation} the validation result
-		 * @throws ServletException 
-		*/
+		 * @throws ServletException
+		 */
 		public FormValidation doCheckKeycloakJson(@QueryParameter String value) throws ServletException {
 			try {
 				if (value != null && !value.isEmpty()) {
@@ -543,7 +543,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
 	/**
 	 * Returns the current KeycloakDeployment configuration.
-	 * 
+	 *
 	 * @return {@link KeycloakDeployment} the keycloak configuration
 	 * @throws IOException
 	 */
