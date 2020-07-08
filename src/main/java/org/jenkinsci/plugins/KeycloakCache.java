@@ -1,0 +1,122 @@
+package org.jenkinsci.plugins;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
+public class KeycloakCache {
+	private static KeycloakCache instance = new KeycloakCache();
+
+	private Map<String, CacheEntry<Collection<String>>> rolesByUserCache = new CacheMap<>(1000);
+
+	private CacheEntry<Collection<String>> roleCache = null;
+
+	private int ttlSec = (int)TimeUnit.MINUTES.toSeconds( 5 );
+
+	private boolean enabled = true;
+
+	private boolean initialized = false;
+
+	private static final Logger LOGGER = Logger.getLogger( KeycloakCache.class.getName() );
+
+	public static KeycloakCache getInstance() {
+		return instance;
+	}
+
+	public boolean isInitialized() {
+		return initialized;
+	}
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void updateCacheConfiguration(boolean enabled, long ttl, int cacheSize) {
+		this.enabled = enabled;
+		this.ttlSec = (int)ttl;
+		((CacheMap)rolesByUserCache).setSize( cacheSize );
+
+		this.initialized = true;
+		LOGGER.finer("Cache settings updated enabled: " + this.enabled + " ttl: " + this.ttlSec + " size: " + cacheSize);
+	}
+
+	public Collection<String> getRolesForUser(String username) {
+		synchronized (rolesByUserCache) {
+			CacheEntry<Collection<String>> rolesEntry = rolesByUserCache.get(username);
+			if (rolesEntry != null && rolesEntry.isValid()) {
+				return rolesEntry.getValue();
+			}
+		}
+		return null;
+	}
+
+	public Collection<String> getRoles() {
+		if (roleCache != null && roleCache.isValid()) {
+			return roleCache.getValue();
+		}
+		return null;
+	}
+
+	public void setRoles(Collection<String> roles) {
+		roleCache = new CacheEntry<>( ttlSec, roles );
+	}
+
+	public void setRolesForUser(String username, String[] roles) {
+		if (roles != null) {
+			Collection<String> roleCollection = Arrays.asList(roles);
+			CacheEntry<Collection<String>> cacheEntry = new CacheEntry<>( ttlSec, roleCollection );
+			synchronized (rolesByUserCache) {
+				rolesByUserCache.put(username, cacheEntry);
+			}
+		}
+	}
+
+	private static class CacheEntry<T> {
+		private final long expires;
+		private final T value;
+
+		public CacheEntry(int ttlSeconds, T value) {
+			this.expires = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(ttlSeconds);
+			this.value = value;
+		}
+
+		public T getValue() {
+			return value;
+		}
+
+		public boolean isValid() {
+			return System.currentTimeMillis() < expires;
+		}
+	}
+
+	/**
+	 * While we could use Guava's CacheBuilder the method signature changes make using it problematic.
+	 * Safer to roll our own and ensure compatibility across as wide a range of Jenkins versions as possible.
+	 *
+	 * @param <K> Key type
+	 * @param <V> Cache entry type
+	 */
+	private static class CacheMap<K, V> extends LinkedHashMap<K, CacheEntry<V>> {
+
+		private static final long serialVersionUID = 1L;
+		private int cacheSize;
+
+		public CacheMap(int cacheSize) {
+			super(cacheSize + 1);
+			this.cacheSize = cacheSize;
+		}
+
+		public void setSize(int cacheSize) {
+			this.cacheSize = cacheSize;
+		}
+
+		@Override
+		protected boolean removeEldestEntry( Map.Entry<K, CacheEntry<V>> eldest) {
+			return size() > cacheSize || eldest.getValue() == null || !eldest.getValue().isValid();
+		}
+	}
+}

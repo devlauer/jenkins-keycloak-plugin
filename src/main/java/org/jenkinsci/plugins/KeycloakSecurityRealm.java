@@ -51,6 +51,7 @@ import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.apache.commons.lang.StringUtils;
 import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.adapters.AdapterDeploymentContext;
@@ -121,6 +122,9 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 	private String keycloakIdp = "";
 	private boolean keycloakValidate = false;
 	private boolean keycloakRespectAccessTokenTimeout = true;
+	private boolean cacheEnabled = true;
+	private String cacheSizeStr = "1000";
+	private String cacheTtlSecStr = "300";
 
 	/**
 	 * Constructor
@@ -132,6 +136,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 	public KeycloakSecurityRealm() throws IOException {
 		super();
 		createFilter();
+		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
 	}
 
 	/*
@@ -189,6 +194,10 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 		String authUrl = builder.build().toString();
 		request.getSession().setAttribute(AUTH_REQUESTED, Boolean.valueOf(true));
 		createFilter();
+		KeycloakCache cache = KeycloakCache.getInstance();
+		if (!cache.isInitialized() ) {
+			KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
+		}
 		return new HttpRedirect(authUrl);
 
 	}
@@ -684,4 +693,58 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 		return this;
 	}
 
+	public boolean isCacheEnabled() {
+		return cacheEnabled;
+	}
+
+	@DataBoundSetter
+	public void setCacheEnabled( boolean cacheEnabled ) {
+		this.cacheEnabled = cacheEnabled;
+		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
+	}
+
+	public int getParsedCacheSize() {
+		int cacheSize = 1000;
+		if ( StringUtils.isNotBlank(cacheSizeStr)) {
+			try {
+				cacheSize = Integer.parseInt( cacheSizeStr );
+			} catch (NumberFormatException nfe) {
+				LOGGER.info( "Unable to parse configuration for cache size, must be a number: " + cacheSizeStr );
+			}
+		}
+		return cacheSize;
+	}
+
+	@DataBoundSetter
+	public void setCacheSizeStr( String cacheSizeStr ) {
+		this.cacheSizeStr = cacheSizeStr;
+		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
+	}
+
+	public long getParsedCacheTtlSec() {
+		int cacheTtl = 300;
+		if ( StringUtils.isNotBlank(cacheTtlSecStr)) {
+			try {
+				cacheTtl = Integer.parseInt( cacheTtlSecStr );
+			} catch (NumberFormatException nfe) {
+				LOGGER.info( "Unable to parse configuration for cache ttl, must be a number: " + cacheTtlSecStr );
+			}
+		}
+		return cacheTtl;
+	}
+
+	public String getCacheSizeStr() {
+		return cacheSizeStr;
+	}
+
+	public String getCacheTtlSecStr() {
+		return cacheTtlSecStr;
+	}
+
+	@DataBoundSetter
+	public void setCacheTtlSecStr( String cacheTtlSecStr ) {
+		this.cacheTtlSecStr = cacheTtlSecStr;
+		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
+
+	}
 }

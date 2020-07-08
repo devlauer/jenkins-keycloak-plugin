@@ -6,6 +6,7 @@ import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
@@ -15,6 +16,7 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -33,8 +35,11 @@ public class KeycloakAccess {
 
 	private KeycloakDeployment keycloakDeployment;
 
+	private KeycloakCache cache = null;
+
 	public KeycloakAccess( KeycloakDeployment keycloakDeployment ) {
 		this.keycloakDeployment = keycloakDeployment;
+		this.cache = KeycloakCache.getInstance();
 	}
 
 	public UserDetails loadUserByUsername( String username ) throws UsernameNotFoundException, DataAccessException {
@@ -51,7 +56,7 @@ public class KeycloakAccess {
 
 	public GroupDetails loadGroupByGroupname( String groupName ) throws UsernameNotFoundException, DataAccessException {
 		try {
-			List<String> roles = getRoles();
+			Collection<String> roles = getRoles();
 			if ( roles.contains( groupName ) ) {
 				return new GroupDetails() {
 					@Override
@@ -84,14 +89,22 @@ public class KeycloakAccess {
 			AccessTokenResponse accessTokenResponse = authzClient.obtainAccessToken( username, password );
 			String token = accessTokenResponse.getToken();
 			List<GrantedAuthority> authorities = getAuthorities(getRolesForUser( username, token ));
+			LOGGER.info("Successful Keycloak authentication for: " + username);
 			return new KeycloakUserDetails( username, authorities.toArray( new GrantedAuthority[0] ) );
 		} catch ( IOException e ) {
-			LOGGER.log( Level.INFO, "Unable to get Keycloak authenticate: " + username, e );
+			LOGGER.log( Level.INFO, "Unable to authenticate user with Keycloak: " + username, e );
 			throw new DataRetrievalFailureException( "Unable to get Keycloak authenticate: " + username, e );
 		}
 	}
 
 	private String[] getRolesForUser( String username, String token ) throws IOException {
+		if (cache.isEnabled()) {
+			Collection<String> cacheRoles = cache.getRolesForUser( username );
+			if ( CollectionUtils.isNotEmpty(cacheRoles)) {
+				return cacheRoles.toArray(new String[0]);
+			}
+		}
+
 		String usersBaseUrl = keycloakDeployment.getAuthServerBaseUrl() + "/admin/realms/" + keycloakDeployment.getRealm() + "/users";
 		String realmInfoUrl = usersBaseUrl + "?username=" + username;
 		HttpGet getUsersReq = new HttpGet( realmInfoUrl );
@@ -130,10 +143,21 @@ public class KeycloakAccess {
 		String roleMappingOutput = EntityUtils.toString( httpEntity );
 		LOGGER.finest( "Role Mapping output: " + roleMappingOutput );
 
-		return getRolesFromJson( roleMappingOutput );
+		String[] roles = getRolesFromJson( roleMappingOutput );
+		if (cache.isEnabled()) {
+			cache.setRolesForUser(username, roles);
+		}
+ 		return roles;
 	}
 
-	private List<String> getRoles() throws IOException {
+	private Collection<String> getRoles() throws IOException {
+		if (cache.isEnabled()) {
+			Collection<String> roles = cache.getRoles();
+			if (CollectionUtils.isNotEmpty( roles )) {
+				return roles;
+			}
+		}
+
 		String token = getAuthToken();
 
 		String rolesUrl = keycloakDeployment.getAuthServerBaseUrl() + "/admin/realms/" + keycloakDeployment.getRealm() + "/roles";
@@ -152,7 +176,11 @@ public class KeycloakAccess {
 		String roleOutput = EntityUtils.toString( httpEntity );
 		LOGGER.finest( "Roles output: " + roleOutput );
 
-		return getRoleInfoFromJson( roleOutput );
+		List<String> roles = getRoleInfoFromJson( roleOutput );
+		if (cache.isEnabled()) {
+			cache.setRoles(roles);
+		}
+		return roles;
 	}
 
 	private String getAuthToken() {
