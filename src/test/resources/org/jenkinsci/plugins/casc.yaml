@@ -1,6 +1,9 @@
 jenkins:
   securityRealm:
     keycloak:
+      cacheEnabled: true
+      cacheSizeStr: "1000"
+      cacheTtlSecStr: "300"
       keycloakJson: |-
         {
           "realm": "master",

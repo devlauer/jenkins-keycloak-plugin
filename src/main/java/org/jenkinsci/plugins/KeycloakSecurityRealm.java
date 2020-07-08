@@ -1,49 +1,56 @@
 /**
  The MIT License
 
-Copyright (c) 2011 Michael O'Cleirigh
+ Copyright (c) 2011 Michael O'Cleirigh
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
 
 
 
  */
 package org.jenkinsci.plugins;
 
+import hudson.Extension;
+import hudson.model.Descriptor;
+import hudson.model.User;
+import hudson.security.AbstractPasswordBasedSecurityRealm;
+import hudson.security.GroupDetails;
+import hudson.security.SecurityRealm;
+import hudson.tasks.Mailer;
+import hudson.util.FormValidation;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.Key;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.security.cert.X509Certificate;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
-
-import com.google.common.base.Strings;
 import jenkins.security.SecurityListener;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
-import org.acegisecurity.AuthenticationManager;
-import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.acegisecurity.userdetails.UserDetails;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.apache.commons.lang.StringUtils;
 import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.adapters.AdapterDeploymentContext;
@@ -63,25 +70,16 @@ import org.keycloak.representations.IDToken;
 import org.keycloak.representations.adapters.config.AdapterConfig;
 import org.keycloak.util.JsonSerialization;
 import org.keycloak.util.TokenUtil;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
-import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-
-import hudson.Extension;
-import hudson.model.Descriptor;
-import hudson.model.User;
-import hudson.security.SecurityRealm;
-import hudson.tasks.Mailer;
-import hudson.util.FormValidation;
-import net.sf.json.JSONObject;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataRetrievalFailureException;
 
 /**
  *
@@ -90,10 +88,10 @@ import net.sf.json.JSONObject;
  *
  * This is based on the MySQLSecurityRealm from the mysql-auth-plugin written by
  * Alex Ackerman.
- * 
+ *
  * @author Mohammad Nadeem, devlauer
  */
-public class KeycloakSecurityRealm extends SecurityRealm {
+public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
 	private static final String JENKINS_LOGIN_URL = "securityRealm/commenceLogin";
 	/**
@@ -120,17 +118,39 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	private String keycloakIdp = "";
 	private boolean keycloakValidate = false;
 	private boolean keycloakRespectAccessTokenTimeout = true;
+	private boolean cacheEnabled = true;
+	private String cacheSizeStr = "1000";
+	private String cacheTtlSecStr = "300";
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @throws IOException
 	 *             -
 	 */
 	@DataBoundConstructor
-	public KeycloakSecurityRealm() throws IOException {
+	public KeycloakSecurityRealm(String keycloakJson,
+		String keycloakIdp,
+		boolean keycloakValidate,
+		boolean keycloakRespectAccessTokenTimeout,
+		boolean cacheEnabled,
+		String cacheSizeStr,
+		String cacheTtlSecStr) throws IOException {
+		super();
+		setKeycloakJson( keycloakJson );
+		setKeycloakIdp( keycloakIdp );
+		setKeycloakValidate( keycloakValidate );
+		setKeycloakRespectAccessTokenTimeout( keycloakRespectAccessTokenTimeout );
+		setCacheEnabled( cacheEnabled );
+		setCacheSizeStr( cacheSizeStr );
+		setCacheTtlSecStr( cacheTtlSecStr );
+		createFilter();
+	}
+
+	protected KeycloakSecurityRealm() {
 		super();
 		createFilter();
+		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
 	}
 
 	/*
@@ -168,7 +188,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	 * @throws IOException
 	 */
 	public HttpResponse doCommenceLogin(StaplerRequest request, StaplerResponse response,
-			@Header("Referer") final String referer) throws IOException {
+		@Header("Referer") final String referer) throws IOException {
 		request.getSession().setAttribute(REFERER_ATTRIBUTE, referer);
 
 		String scopeParam = TokenUtil.attachOIDCScope(null);
@@ -176,18 +196,22 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 		String state = UUID.randomUUID().toString();
 
-        KeycloakUriBuilder builder = getKeycloakDeployment().getAuthUrl().clone()
-				.queryParam(OAuth2Constants.CLIENT_ID, getKeycloakDeployment().getResourceName())
-				.queryParam(OAuth2Constants.REDIRECT_URI, redirect).queryParam(OAuth2Constants.STATE, state)
-				.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE)
-				.queryParam(OAuth2Constants.SCOPE, scopeParam);
-        String keycloakIdp = getKeycloakIdp();
-        if (!"".equals(keycloakIdp)&&(keycloakIdp!=null)) {
-            builder.queryParam("kc_idp_hint", keycloakIdp);
-        }
+		KeycloakUriBuilder builder = getKeycloakDeployment().getAuthUrl().clone()
+			.queryParam(OAuth2Constants.CLIENT_ID, getKeycloakDeployment().getResourceName())
+			.queryParam(OAuth2Constants.REDIRECT_URI, redirect).queryParam(OAuth2Constants.STATE, state)
+			.queryParam(OAuth2Constants.RESPONSE_TYPE, OAuth2Constants.CODE)
+			.queryParam(OAuth2Constants.SCOPE, scopeParam);
+		String keycloakIdp = getKeycloakIdp();
+		if (!"".equals(keycloakIdp)&&(keycloakIdp!=null)) {
+			builder.queryParam("kc_idp_hint", keycloakIdp);
+		}
 		String authUrl = builder.build().toString();
 		request.getSession().setAttribute(AUTH_REQUESTED, Boolean.valueOf(true));
 		createFilter();
+		KeycloakCache cache = KeycloakCache.getInstance();
+		if (!cache.isInitialized() ) {
+			KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
+		}
 		return new HttpRedirect(authUrl);
 
 	}
@@ -198,11 +222,11 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		// if a reverse proxy with ssl is used, the redirect should point to
 		// https
 		if (refererURL != null && requestURL != null && refererURL.startsWith("https:")
-				&& requestURL.startsWith("http:")) {
+			&& requestURL.startsWith("http:")) {
 			requestURL = requestURL.replace("http:", "https:");
 		}
 		KeycloakUriBuilder builder = KeycloakUriBuilder.fromUri(requestURL).replacePath(request.getContextPath())
-				.replaceQuery(null).path(JENKINS_FINISH_LOGIN_URL);
+			.replaceQuery(null).path(JENKINS_FINISH_LOGIN_URL);
 		String redirect = builder.toTemplate();
 		return redirect;
 	}
@@ -215,7 +239,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	/**
 	 * This is where the user comes back to at the end of the OpenID redirect
 	 * ping-pong.
-	 * 
+	 *
 	 * @param request
 	 *            the Jenkins request
 	 * @return {@link HttpResponse} the response
@@ -234,7 +258,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 			LOGGER.log(Level.FINE, "TokenURL" + resolvedDeployment.getTokenUrl());
 
 			AccessTokenResponse tokenResponse = ServerRequest.invokeAccessCodeToToken(resolvedDeployment,
-					request.getParameter(OAuth2Constants.CODE), redirect, null);
+				request.getParameter(OAuth2Constants.CODE), redirect, null);
 
 			String tokenString = tokenResponse.getToken();
 			String idTokenString = tokenResponse.getIdToken();
@@ -258,7 +282,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 					}
 
 					KeycloakUserDetails userDetails = new KeycloakUserDetails(
-							idToken.getPreferredUsername(), auth.getAuthorities()
+						idToken.getPreferredUsername(), auth.getAuthorities()
 					);
 					SecurityListener.fireAuthenticated(userDetails);
 				}
@@ -304,14 +328,9 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 	@Override
 	public SecurityComponents createSecurityComponents() {
-		SecurityComponents sc = new SecurityComponents(new AuthenticationManager() {
-			public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-				if (authentication instanceof KeycloakAuthentication) {
-					return authentication;
-				}
-				throw new BadCredentialsException("Unexpected authentication type: " + authentication);
-			}
-		});
+		KeycloakUserDetailsService userDetailsService = new KeycloakUserDetailsService(this);
+		KeycloakAuthenticationManager authenticationManager = new KeycloakAuthenticationManager(this);
+		SecurityComponents sc = new SecurityComponents(authenticationManager, userDetailsService);
 		return sc;
 	}
 
@@ -335,9 +354,38 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		super.doLogout(req, rsp);
 	}
 
+	@Override
+	protected UserDetails authenticate( String username, String password ) throws AuthenticationException {
+		LOGGER.info( "KeycloakSecurityRealm.authenticate: " + username );
+		try {
+			KeycloakAccess keycloakAccess = new KeycloakAccess( getKeycloakDeployment() );
+			return keycloakAccess.authenticate( username, password );
+		} catch ( IOException e ) {
+			LOGGER.log( Level.WARNING, "Unable to authenticate: " + username, e );
+			throw new DataRetrievalFailureException( "Unable to authenticate: " + username, e );
+		}
+	}
+
+	@Override
+	public UserDetails loadUserByUsername( String username ) throws UsernameNotFoundException, DataAccessException {
+		return getSecurityComponents().userDetails.loadUserByUsername( username );
+	}
+
+	@Override
+	public GroupDetails loadGroupByGroupname( String groupName ) throws UsernameNotFoundException, DataAccessException {
+		LOGGER.info( "KeycloakSecurityRealm.loadGroupByGroupname: " + groupName );
+		try {
+			KeycloakAccess keycloakAccess = new KeycloakAccess( getKeycloakDeployment() );
+			return keycloakAccess.loadGroupByGroupname( groupName );
+		} catch ( IOException e ) {
+			LOGGER.log( Level.WARNING, "Unable to get role information from Keycloak for: " + groupName, e );
+			throw new DataRetrievalFailureException( "Unable to get role information from Keycloak for: " + groupName, e );
+		}
+	}
+
 	/**
 	 * Descriptor definition for Jenkins
-	 * 
+	 *
 	 * @author dev.lauer@elnarion.de
 	 *
 	 */
@@ -361,58 +409,26 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		}
 
 		public DescriptorImpl(Class<? extends SecurityRealm> clazz) {
-			super(clazz);
+			super(KeycloakSecurityRealm.class);
 		}
 
 		/**
 		 * Validate keycloakJson
-		 * 
+		 *
 		 * @param value String the form field value to validate
 		 * @return {@link FormValidation} the validation result
-		 * @throws ServletException 
-		*/
-		public FormValidation doCheckKeycloakJson(@QueryParameter String value) throws ServletException {
-			try {
-				if (value != null && !value.isEmpty()) {
-					JsonSerialization.readValue(value, AdapterConfig.class);
-				}
-			} catch (IOException ex) {
-				return FormValidation.error("Invalid adapter config");
-			}
-			return FormValidation.ok();
-		}
-
-		@Override
-		public boolean configure(StaplerRequest req, JSONObject json) throws hudson.model.Descriptor.FormException {
-			json = json.getJSONObject("keycloak");
-			// if json contains keycloakvalidate then keycloakvalidate is true
-			if (json.containsKey("keycloakValidate")) {
-				LOGGER.log(Level.FINE, "Keycloakvalidate set to true");
-				json.put("keycloakValidate", true);
-				JSONObject validate = json.getJSONObject("keycloakValidate");
-				if (validate.containsKey("keycloakRespectAccessTokenTimeout")) {
-					json.put("keycloakRespectAccessTokenTimeout", validate.getBoolean("keycloakRespectAccessTokenTimeout"));
-					LOGGER.log(Level.FINE, "Respect access token timeout is set to " + validate.getBoolean("keycloakRespectAccessTokenTimeout"));
-				}
-			} else {
-				json.put("keycloakValidate", false);
-				json.put("keycloakRespectAccessTokenTimeout", true);
-			}
-			return super.configure(req, json);
-		}
-
-		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
-		@Deprecated
-		public transient String keycloakJson = "";
-		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
-		@Deprecated
-		public transient String keycloakIdp = "";
-		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
-		@Deprecated
-		public transient boolean keycloakValidate = false;
-		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
-		@Deprecated
-		public transient boolean keycloakRespectAccessTokenTimeout = true;
+		 * @throws ServletException
+		 */
+//		public FormValidation doCheckKeycloakJson(@QueryParameter String value) throws ServletException {
+//			try {
+//				if (value != null && !value.isEmpty()) {
+//					JsonSerialization.readValue(value, AdapterConfig.class);
+//				}
+//			} catch (IOException ex) {
+//				return FormValidation.error("Invalid adapter config");
+//			}
+//			return FormValidation.ok();
+//		}
 	}
 
 	/**
@@ -430,7 +446,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	 * @param keycloakJson
 	 *            the configuration
 	 */
-	@DataBoundSetter
+//	@DataBoundSetter
 	public void setKeycloakJson(String keycloakJson) {
 		this.keycloakJson = keycloakJson;
 	}
@@ -451,7 +467,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	 * @param keycloakValidate
 	 *            {@link Boolean} if true authentication is checked on each request
 	 */
-	@DataBoundSetter
+//	@DataBoundSetter
 	public void setKeycloakValidate(boolean keycloakValidate) {
 		this.keycloakValidate = keycloakValidate;
 	}
@@ -473,7 +489,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	 *            {@link Boolean} whether the expiration of the access token should
 	 *            be checked or not before a token refresh
 	 */
-	@DataBoundSetter
+//	@DataBoundSetter
 	public void setKeycloakRespectAccessTokenTimeout(boolean keycloakRespectAccessTokenTimeout) {
 		this.keycloakRespectAccessTokenTimeout = keycloakRespectAccessTokenTimeout;
 	}
@@ -493,7 +509,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 	 * @param keycloakIdp {@link String} the keycloak idp hint
 	 *
 	 */
-	@DataBoundSetter
+//	@DataBoundSetter
 	public void setKeycloakIdp(String keycloakIdp) {
 		this.keycloakIdp = keycloakIdp;
 	}
@@ -518,7 +534,7 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 
 	/**
 	 * Returns the current KeycloakDeployment configuration.
-	 * 
+	 *
 	 * @return {@link KeycloakDeployment} the keycloak configuration
 	 * @throws IOException
 	 */
@@ -644,19 +660,58 @@ public class KeycloakSecurityRealm extends SecurityRealm {
 		}
 	}
 
-	private Object readResolve() {
-		if (Strings.isNullOrEmpty(this.keycloakJson)) {
-			getDescriptor().load();
-			DescriptorImpl descriptor = ((DescriptorImpl) getDescriptor());
-			System.out.println("Moo -- " + descriptor.keycloakJson);
-			if (!Strings.isNullOrEmpty(descriptor.keycloakJson)) {
-				this.keycloakJson = descriptor.keycloakJson;
-				this.keycloakIdp = descriptor.keycloakIdp;
-				this.keycloakValidate = descriptor.keycloakValidate;
-				this.keycloakRespectAccessTokenTimeout = descriptor.keycloakRespectAccessTokenTimeout;
-			}
-		}
-		return this;
+	public boolean isCacheEnabled() {
+		return cacheEnabled;
 	}
 
+//	@DataBoundSetter
+	public void setCacheEnabled( boolean cacheEnabled ) {
+		this.cacheEnabled = cacheEnabled;
+		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
+	}
+
+	public int getParsedCacheSize() {
+		int cacheSize = 1000;
+		if ( StringUtils.isNotBlank(cacheSizeStr)) {
+			try {
+				cacheSize = Integer.parseInt( cacheSizeStr );
+			} catch (NumberFormatException nfe) {
+				LOGGER.info( "Unable to parse configuration for cache size, must be a number: " + cacheSizeStr );
+			}
+		}
+		return cacheSize;
+	}
+
+//	@DataBoundSetter
+	public void setCacheSizeStr( String cacheSizeStr ) {
+		this.cacheSizeStr = cacheSizeStr;
+		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
+	}
+
+	public long getParsedCacheTtlSec() {
+		int cacheTtl = 300;
+		if ( StringUtils.isNotBlank(cacheTtlSecStr)) {
+			try {
+				cacheTtl = Integer.parseInt( cacheTtlSecStr );
+			} catch (NumberFormatException nfe) {
+				LOGGER.info( "Unable to parse configuration for cache ttl, must be a number: " + cacheTtlSecStr );
+			}
+		}
+		return cacheTtl;
+	}
+
+	public String getCacheSizeStr() {
+		return cacheSizeStr;
+	}
+
+	public String getCacheTtlSecStr() {
+		return cacheTtlSecStr;
+	}
+
+//	@DataBoundSetter
+	public void setCacheTtlSecStr( String cacheTtlSecStr ) {
+		this.cacheTtlSecStr = cacheTtlSecStr;
+		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
+
+	}
 }
