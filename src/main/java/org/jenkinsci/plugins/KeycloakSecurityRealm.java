@@ -26,7 +26,6 @@
  */
 package org.jenkinsci.plugins;
 
-import com.google.common.base.Strings;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.User;
@@ -37,6 +36,7 @@ import hudson.tasks.Mailer;
 import hudson.util.FormValidation;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.Key;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -45,7 +45,6 @@ import javax.security.cert.X509Certificate;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import jenkins.security.SecurityListener;
-import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.context.SecurityContextHolder;
@@ -71,15 +70,12 @@ import org.keycloak.representations.IDToken;
 import org.keycloak.representations.adapters.config.AdapterConfig;
 import org.keycloak.util.JsonSerialization;
 import org.keycloak.util.TokenUtil;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
-import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.springframework.dao.DataAccessException;
@@ -133,7 +129,25 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 	 *             -
 	 */
 	@DataBoundConstructor
-	public KeycloakSecurityRealm() throws IOException {
+	public KeycloakSecurityRealm(String keycloakJson,
+		String keycloakIdp,
+		boolean keycloakValidate,
+		boolean keycloakRespectAccessTokenTimeout,
+		boolean cacheEnabled,
+		String cacheSizeStr,
+		String cacheTtlSecStr) throws IOException {
+		super();
+		setKeycloakJson( keycloakJson );
+		setKeycloakIdp( keycloakIdp );
+		setKeycloakValidate( keycloakValidate );
+		setKeycloakRespectAccessTokenTimeout( keycloakRespectAccessTokenTimeout );
+		setCacheEnabled( cacheEnabled );
+		setCacheSizeStr( cacheSizeStr );
+		setCacheTtlSecStr( cacheTtlSecStr );
+		createFilter();
+	}
+
+	protected KeycloakSecurityRealm() {
 		super();
 		createFilter();
 		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
@@ -395,7 +409,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 		}
 
 		public DescriptorImpl(Class<? extends SecurityRealm> clazz) {
-			super(clazz);
+			super(KeycloakSecurityRealm.class);
 		}
 
 		/**
@@ -405,48 +419,16 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 		 * @return {@link FormValidation} the validation result
 		 * @throws ServletException
 		 */
-		public FormValidation doCheckKeycloakJson(@QueryParameter String value) throws ServletException {
-			try {
-				if (value != null && !value.isEmpty()) {
-					JsonSerialization.readValue(value, AdapterConfig.class);
-				}
-			} catch (IOException ex) {
-				return FormValidation.error("Invalid adapter config");
-			}
-			return FormValidation.ok();
-		}
-
-		@Override
-		public boolean configure(StaplerRequest req, JSONObject json) throws hudson.model.Descriptor.FormException {
-			json = json.getJSONObject("keycloak");
-			// if json contains keycloakvalidate then keycloakvalidate is true
-			if (json.containsKey("keycloakValidate")) {
-				LOGGER.log(Level.FINE, "Keycloakvalidate set to true");
-				json.put("keycloakValidate", true);
-				JSONObject validate = json.getJSONObject("keycloakValidate");
-				if (validate.containsKey("keycloakRespectAccessTokenTimeout")) {
-					json.put("keycloakRespectAccessTokenTimeout", validate.getBoolean("keycloakRespectAccessTokenTimeout"));
-					LOGGER.log(Level.FINE, "Respect access token timeout is set to " + validate.getBoolean("keycloakRespectAccessTokenTimeout"));
-				}
-			} else {
-				json.put("keycloakValidate", false);
-				json.put("keycloakRespectAccessTokenTimeout", true);
-			}
-			return super.configure(req, json);
-		}
-
-		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
-		@Deprecated
-		public transient String keycloakJson = "";
-		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
-		@Deprecated
-		public transient String keycloakIdp = "";
-		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
-		@Deprecated
-		public transient boolean keycloakValidate = false;
-		@Restricted(NoExternalUse.class) // Only for loading in from legacy disk
-		@Deprecated
-		public transient boolean keycloakRespectAccessTokenTimeout = true;
+//		public FormValidation doCheckKeycloakJson(@QueryParameter String value) throws ServletException {
+//			try {
+//				if (value != null && !value.isEmpty()) {
+//					JsonSerialization.readValue(value, AdapterConfig.class);
+//				}
+//			} catch (IOException ex) {
+//				return FormValidation.error("Invalid adapter config");
+//			}
+//			return FormValidation.ok();
+//		}
 	}
 
 	/**
@@ -464,7 +446,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 	 * @param keycloakJson
 	 *            the configuration
 	 */
-	@DataBoundSetter
+//	@DataBoundSetter
 	public void setKeycloakJson(String keycloakJson) {
 		this.keycloakJson = keycloakJson;
 	}
@@ -485,7 +467,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 	 * @param keycloakValidate
 	 *            {@link Boolean} if true authentication is checked on each request
 	 */
-	@DataBoundSetter
+//	@DataBoundSetter
 	public void setKeycloakValidate(boolean keycloakValidate) {
 		this.keycloakValidate = keycloakValidate;
 	}
@@ -507,7 +489,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 	 *            {@link Boolean} whether the expiration of the access token should
 	 *            be checked or not before a token refresh
 	 */
-	@DataBoundSetter
+//	@DataBoundSetter
 	public void setKeycloakRespectAccessTokenTimeout(boolean keycloakRespectAccessTokenTimeout) {
 		this.keycloakRespectAccessTokenTimeout = keycloakRespectAccessTokenTimeout;
 	}
@@ -527,7 +509,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 	 * @param keycloakIdp {@link String} the keycloak idp hint
 	 *
 	 */
-	@DataBoundSetter
+//	@DataBoundSetter
 	public void setKeycloakIdp(String keycloakIdp) {
 		this.keycloakIdp = keycloakIdp;
 	}
@@ -678,26 +660,11 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 		}
 	}
 
-	private Object readResolve() {
-		if (Strings.isNullOrEmpty(this.keycloakJson)) {
-			getDescriptor().load();
-			DescriptorImpl descriptor = ((DescriptorImpl) getDescriptor());
-			System.out.println("Moo -- " + descriptor.keycloakJson);
-			if (!Strings.isNullOrEmpty(descriptor.keycloakJson)) {
-				this.keycloakJson = descriptor.keycloakJson;
-				this.keycloakIdp = descriptor.keycloakIdp;
-				this.keycloakValidate = descriptor.keycloakValidate;
-				this.keycloakRespectAccessTokenTimeout = descriptor.keycloakRespectAccessTokenTimeout;
-			}
-		}
-		return this;
-	}
-
 	public boolean isCacheEnabled() {
 		return cacheEnabled;
 	}
 
-	@DataBoundSetter
+//	@DataBoundSetter
 	public void setCacheEnabled( boolean cacheEnabled ) {
 		this.cacheEnabled = cacheEnabled;
 		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
@@ -715,7 +682,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 		return cacheSize;
 	}
 
-	@DataBoundSetter
+//	@DataBoundSetter
 	public void setCacheSizeStr( String cacheSizeStr ) {
 		this.cacheSizeStr = cacheSizeStr;
 		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
@@ -741,7 +708,7 @@ public class KeycloakSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 		return cacheTtlSecStr;
 	}
 
-	@DataBoundSetter
+//	@DataBoundSetter
 	public void setCacheTtlSecStr( String cacheTtlSecStr ) {
 		this.cacheTtlSecStr = cacheTtlSecStr;
 		KeycloakCache.getInstance().updateCacheConfiguration( isCacheEnabled(), getParsedCacheTtlSec(), getParsedCacheSize() );
