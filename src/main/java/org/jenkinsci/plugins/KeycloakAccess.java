@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -48,7 +51,10 @@ public class KeycloakAccess {
 			String token = getAuthToken();
 			List<GrantedAuthority> authorities = getAuthorities(getRolesForUser( username, token ));
 			return new KeycloakUserDetails( username, authorities.toArray( new GrantedAuthority[0] ) );
-		} catch ( IOException e ) {
+		} catch (UsernameNotFoundException e) {
+			LOGGER.log( Level.INFO, "Unable to find user in keycloak: " + username );
+			throw new DataRetrievalFailureException( "Unable to get user information from Keycloak for " + username, e );
+		} catch ( Exception e ) {
 			LOGGER.log( Level.INFO, "Unable to get user information from Keycloak for: " + username, e );
 			throw new DataRetrievalFailureException( "Unable to get user information from Keycloak for " + username, e );
 		}
@@ -68,7 +74,7 @@ public class KeycloakAccess {
 				LOGGER.info( "Couldn't find role information for: " + groupName );
 				throw new DataRetrievalFailureException( "Couldn't find role information for: " + groupName );
 			}
-		} catch ( IOException e ) {
+		} catch ( Exception e ) {
 			LOGGER.log( Level.INFO, "Unable to get role information from Keycloak for: " + groupName, e );
 			throw new DataRetrievalFailureException( "Unable to get role information from Keycloak for: " + groupName, e );
 		}
@@ -91,7 +97,7 @@ public class KeycloakAccess {
 			List<GrantedAuthority> authorities = getAuthorities(getRolesForUser( username, token ));
 			LOGGER.info("Successful Keycloak authentication for: " + username);
 			return new KeycloakUserDetails( username, authorities.toArray( new GrantedAuthority[0] ) );
-		} catch ( IOException e ) {
+		} catch ( Exception e ) {
 			LOGGER.log( Level.INFO, "Unable to authenticate user with Keycloak: " + username, e );
 			throw new DataRetrievalFailureException( "Unable to get Keycloak authenticate: " + username, e );
 		}
@@ -105,17 +111,20 @@ public class KeycloakAccess {
 			}
 		}
 
-		String usersBaseUrl = keycloakDeployment.getAuthServerBaseUrl() + "/admin/realms/" + keycloakDeployment.getRealm() + "/users";
-		String realmInfoUrl = usersBaseUrl + "?username=" + username;
+		String encodedRealm = URLEncoder.encode( keycloakDeployment.getRealm(), StandardCharsets.UTF_8.name() );
+		String encodedUsername = URLEncoder.encode( username, StandardCharsets.UTF_8.name() );
+
+		String usersBaseUrl = keycloakDeployment.getAuthServerBaseUrl() + "/admin/realms/" + encodedRealm + "/users";
+		String realmInfoUrl = usersBaseUrl + "?username=" + encodedUsername;
 		HttpGet getUsersReq = new HttpGet( realmInfoUrl );
 		KeycloakAccess.addKeycloakClientCredentialsToRequest( getUsersReq, token );
 
 		HttpResponse usersResponse = keycloakDeployment.getClient().execute( getUsersReq );
 		int statusCode = usersResponse.getStatusLine().getStatusCode();
 		if ( statusCode != 200 ) {
-			LOGGER.info( "Unable to get user from Keycloak, status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+			LOGGER.info( "Unable to get user from Keycloak (" + realmInfoUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
 			throw new DataRetrievalFailureException(
-				"Unable to get user from Keycloak, status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+				"Unable to get user from Keycloak (" + realmInfoUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
 		}
 
 		HttpEntity httpEntity = usersResponse.getEntity();
@@ -129,15 +138,17 @@ public class KeycloakAccess {
 
 		LOGGER.finer( "Getting roles for " + username + "(" + id + ")" );
 
-		String roleUrl = usersBaseUrl + "/" + id + "/role-mappings";
+		String encodedId = URLEncoder.encode( id, StandardCharsets.UTF_8.name() );
+
+		String roleUrl = usersBaseUrl + "/" + encodedId + "/role-mappings";
 		HttpGet roleMappingReq = new HttpGet( roleUrl );
 		KeycloakAccess.addKeycloakClientCredentialsToRequest( roleMappingReq, token );
 		HttpResponse roleMappingResponse = keycloakDeployment.getClient().execute( roleMappingReq );
 		statusCode = roleMappingResponse.getStatusLine().getStatusCode();
 		if ( statusCode != 200 ) {
-			LOGGER.warning( "Unable to get role-mapping from Keycloak, status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+			LOGGER.warning( "Unable to get role-mapping from Keycloak (" + roleUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
 			throw new DataRetrievalFailureException(
-				"Unable to get role-mapping from Keycloak, status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+				"Unable to get role-mapping from Keycloak (" + roleUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
 		}
 		httpEntity = roleMappingResponse.getEntity();
 		String roleMappingOutput = EntityUtils.toString( httpEntity );
@@ -159,8 +170,9 @@ public class KeycloakAccess {
 		}
 
 		String token = getAuthToken();
+		String encodedRealm = URLEncoder.encode( keycloakDeployment.getRealm(), StandardCharsets.UTF_8.name() );
 
-		String rolesUrl = keycloakDeployment.getAuthServerBaseUrl() + "/admin/realms/" + keycloakDeployment.getRealm() + "/roles";
+		String rolesUrl = keycloakDeployment.getAuthServerBaseUrl() + "/admin/realms/" + encodedRealm + "/roles";
 		HttpGet rolesReq = new HttpGet( rolesUrl );
 		KeycloakAccess.addKeycloakClientCredentialsToRequest( rolesReq, token );
 
