@@ -48,9 +48,14 @@ public class KeycloakAccess {
 	public UserDetails loadUserByUsername( String username ) throws UsernameNotFoundException, DataAccessException {
 		LOGGER.finer( "Requested User Details for: " + username );
 		try {
-			List<GrantedAuthority> authorities = getAuthorities(getRolesForUser( username, null ));
-			return new KeycloakUserDetails( username, authorities.toArray( new GrantedAuthority[0] ) );
+			if (!cache.isInvalidUser( username )) {
+				List<GrantedAuthority> authorities = getAuthorities( getRolesForUser( username, null ) );
+				return new KeycloakUserDetails( username, authorities.toArray( new GrantedAuthority[0] ) );
+			} else {
+				throw new UsernameNotFoundException( username + " not found in keycloak");
+			}
 		} catch (UsernameNotFoundException e) {
+			cache.addInvalidUser( username );
 			LOGGER.log( Level.FINE, "Unable to find user in keycloak: " + username );
 			throw new DataRetrievalFailureException( "Unable to get user information from Keycloak for " + username, e );
 		} catch ( Exception e ) {

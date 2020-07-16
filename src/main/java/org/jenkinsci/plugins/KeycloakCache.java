@@ -15,6 +15,8 @@ public class KeycloakCache {
 
 	private CacheEntry<Collection<String>> roleCache = null;
 
+	private Map<String, CacheEntry<Boolean>> invalidUserMap = new CacheMap<>(1000);
+
 	private int ttlSec = (int)TimeUnit.MINUTES.toSeconds( 5 );
 
 	private boolean enabled = true;
@@ -39,6 +41,7 @@ public class KeycloakCache {
 		this.enabled = enabled;
 		this.ttlSec = (int)ttl;
 		((CacheMap)rolesByUserCache).setSize( cacheSize );
+		((CacheMap)invalidUserMap).setSize( cacheSize );
 
 		this.initialized = true;
 		LOGGER.finer("Cache settings updated enabled: " + this.enabled + " ttl: " + this.ttlSec + " size: " + cacheSize);
@@ -72,6 +75,25 @@ public class KeycloakCache {
 			synchronized (rolesByUserCache) {
 				rolesByUserCache.put(username, cacheEntry);
 			}
+		}
+	}
+
+	public boolean isInvalidUser(String username) {
+		synchronized (invalidUserMap) {
+			CacheEntry<Boolean> invalidUserData = invalidUserMap.get( username );
+			if (invalidUserData != null && invalidUserData.isValid()) {
+				LOGGER.info(username + " is invalid: " + invalidUserData.getValue());
+				return invalidUserData.getValue();
+			}
+		}
+		return false;
+	}
+
+	public void addInvalidUser(String username) {
+		synchronized (invalidUserMap) {
+			LOGGER.info( "Adding invalid user: " + username );
+			CacheEntry<Boolean> invalidUserData = new CacheEntry<>( ttlSec, true );
+			invalidUserMap.put( username, invalidUserData );
 		}
 	}
 
