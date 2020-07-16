@@ -48,14 +48,18 @@ public class KeycloakAccess {
 	public UserDetails loadUserByUsername( String username ) throws UsernameNotFoundException, DataAccessException {
 		LOGGER.finer( "Requested User Details for: " + username );
 		try {
-			String token = getAuthToken();
-			List<GrantedAuthority> authorities = getAuthorities(getRolesForUser( username, token ));
-			return new KeycloakUserDetails( username, authorities.toArray( new GrantedAuthority[0] ) );
+			if (!cache.isInvalidUser( username )) {
+				List<GrantedAuthority> authorities = getAuthorities( getRolesForUser( username, null ) );
+				return new KeycloakUserDetails( username, authorities.toArray( new GrantedAuthority[0] ) );
+			} else {
+				throw new DataRetrievalFailureException( "Unable to get user information from Keycloak for " + username );
+			}
 		} catch (UsernameNotFoundException e) {
-			LOGGER.log( Level.INFO, "Unable to find user in keycloak: " + username );
+			cache.addInvalidUser( username );
+			LOGGER.log( Level.FINE, "Unable to find user in keycloak: " + username );
 			throw new DataRetrievalFailureException( "Unable to get user information from Keycloak for " + username, e );
 		} catch ( Exception e ) {
-			LOGGER.log( Level.INFO, "Unable to get user information from Keycloak for: " + username, e );
+			LOGGER.log( Level.FINE, "Unable to get user information from Keycloak for: " + username, e );
 			throw new DataRetrievalFailureException( "Unable to get user information from Keycloak for " + username, e );
 		}
 	}
@@ -71,11 +75,11 @@ public class KeycloakAccess {
 					}
 				};
 			} else {
-				LOGGER.info( "Couldn't find role information for: " + groupName );
+				LOGGER.fine( "Couldn't find role information for: " + groupName );
 				throw new DataRetrievalFailureException( "Couldn't find role information for: " + groupName );
 			}
 		} catch ( Exception e ) {
-			LOGGER.log( Level.INFO, "Unable to get role information from Keycloak for: " + groupName, e );
+			LOGGER.log( Level.FINE, "Unable to get role information from Keycloak for: " + groupName, e );
 			throw new DataRetrievalFailureException( "Unable to get role information from Keycloak for: " + groupName, e );
 		}
 	}
@@ -103,6 +107,13 @@ public class KeycloakAccess {
 		}
 	}
 
+	/**
+	 * Get the roles from the user, from either cache or calling Keycloak.
+	 * @param username - username to retrieve keycloak roles
+	 * @param token - Null token will get client token for role retrieval
+	 * @return
+	 * @throws IOException
+	 */
 	private String[] getRolesForUser( String username, String token ) throws IOException {
 		if (cache.isEnabled()) {
 			Collection<String> cacheRoles = cache.getRolesForUser( username );
@@ -111,6 +122,10 @@ public class KeycloakAccess {
 			}
 		}
 
+		// Get system token if one isn't provided
+		if (token == null) {
+			token = getAuthToken();
+		}
 		String encodedRealm = URLEncoder.encode( keycloakDeployment.getRealm(), StandardCharsets.UTF_8.name() );
 		String encodedUsername = URLEncoder.encode( username, StandardCharsets.UTF_8.name() );
 
@@ -122,7 +137,7 @@ public class KeycloakAccess {
 		HttpResponse usersResponse = keycloakDeployment.getClient().execute( getUsersReq );
 		int statusCode = usersResponse.getStatusLine().getStatusCode();
 		if ( statusCode != 200 ) {
-			LOGGER.info( "Unable to get user from Keycloak (" + realmInfoUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+			LOGGER.fine( "Unable to get user from Keycloak (" + realmInfoUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
 			throw new DataRetrievalFailureException(
 				"Unable to get user from Keycloak (" + realmInfoUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
 		}
