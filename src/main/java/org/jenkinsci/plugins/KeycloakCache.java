@@ -82,7 +82,7 @@ public class KeycloakCache {
 		synchronized (invalidUserMap) {
 			CacheEntry<Boolean> invalidUserData = invalidUserMap.get( username );
 			if (invalidUserData != null && invalidUserData.isValid()) {
-				LOGGER.info(username + " is invalid: " + invalidUserData.getValue());
+				LOGGER.fine(username + " is invalid: " + invalidUserData.getValue());
 				return invalidUserData.getValue();
 			}
 		}
@@ -91,7 +91,7 @@ public class KeycloakCache {
 
 	public void addInvalidUser(String username) {
 		synchronized (invalidUserMap) {
-			LOGGER.info( "Adding invalid user: " + username );
+			LOGGER.fine( "Caching invalid user: " + username );
 			CacheEntry<Boolean> invalidUserData = new CacheEntry<>( ttlSec, true );
 			invalidUserMap.put( username, invalidUserData );
 		}

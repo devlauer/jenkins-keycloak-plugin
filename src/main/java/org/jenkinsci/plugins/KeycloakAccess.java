@@ -52,7 +52,7 @@ public class KeycloakAccess {
 				List<GrantedAuthority> authorities = getAuthorities( getRolesForUser( username, null ) );
 				return new KeycloakUserDetails( username, authorities.toArray( new GrantedAuthority[0] ) );
 			} else {
-				throw new UsernameNotFoundException( username + " not found in keycloak");
+				throw new DataRetrievalFailureException( "Unable to get user information from Keycloak for " + username );
 			}
 		} catch (UsernameNotFoundException e) {
 			cache.addInvalidUser( username );
