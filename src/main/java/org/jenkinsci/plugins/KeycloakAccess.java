@@ -6,12 +6,12 @@ import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.acegisecurity.AuthenticationException;
@@ -39,6 +39,8 @@ public class KeycloakAccess {
 	private KeycloakDeployment keycloakDeployment;
 
 	private KeycloakCache cache = null;
+
+
 
 	public KeycloakAccess( KeycloakDeployment keycloakDeployment ) {
 		this.keycloakDeployment = keycloakDeployment;
@@ -211,11 +213,16 @@ public class KeycloakAccess {
 	}
 
 	private String getAuthToken() {
-		Configuration configuration = new Configuration( keycloakDeployment.getAuthServerBaseUrl(), keycloakDeployment.getRealm(),
-			keycloakDeployment.getResourceName(), keycloakDeployment.getResourceCredentials(), keycloakDeployment.getClient() );
-		AuthzClient authzClient = AuthzClient.create( configuration );
-		AccessTokenResponse accessTokenResponse = authzClient.obtainAccessToken();
-		return accessTokenResponse.getToken();
+		String token = cache.getSystemToken();
+		if (token == null) {
+				Configuration configuration = new Configuration( keycloakDeployment.getAuthServerBaseUrl(), keycloakDeployment.getRealm(), keycloakDeployment.getResourceName(), keycloakDeployment.getResourceCredentials(), keycloakDeployment.getClient() );
+				AuthzClient authzClient = AuthzClient.create( configuration );
+				AccessTokenResponse accessTokenResponse = authzClient.obtainAccessToken();
+				token = accessTokenResponse.getToken();
+				LOGGER.finest( "Token expires in: " + accessTokenResponse.getExpiresIn() );
+				cache.setSystemToken( token, accessTokenResponse.getExpiresIn() );
+		}
+		return token;
 	}
 
 	private String[] getRolesFromJson( String json ) throws JsonProcessingException {
