@@ -22,6 +22,12 @@ public class KeycloakCache {
 
 	private boolean initialized = false;
 
+	private String token = null;
+
+	private long tokenExpiration = 0;
+
+	private static final Object TOKEN_LOCK = new Object();
+
 	private static final Logger LOGGER = Logger.getLogger( KeycloakCache.class.getName() );
 
 	public static KeycloakCache getInstance() {
@@ -93,6 +99,22 @@ public class KeycloakCache {
 			LOGGER.fine( "Caching invalid user: " + username );
 			CacheEntry<Boolean> invalidUserData = new CacheEntry<>( ttlSec, true );
 			invalidUserMap.put( username, invalidUserData );
+		}
+	}
+
+	public void setSystemToken(String token, long tokenExpiration) {
+		synchronized (TOKEN_LOCK) {
+			this.token = token;
+			this.tokenExpiration = System.currentTimeMillis() + tokenExpiration - 500; //include 500ms buffer
+		}
+	}
+
+	public String getSystemToken() {
+		synchronized (TOKEN_LOCK) {
+			if ( token != null || System.currentTimeMillis() < tokenExpiration ) {
+				return token;
+			}
+			return null;
 		}
 	}
 

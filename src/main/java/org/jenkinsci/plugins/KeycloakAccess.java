@@ -40,11 +40,7 @@ public class KeycloakAccess {
 
 	private KeycloakCache cache = null;
 
-	private String token = null;
 
-	private long tokenExpiration = 0;
-
-	private static final Object LOCK = new Object();
 
 	public KeycloakAccess( KeycloakDeployment keycloakDeployment ) {
 		this.keycloakDeployment = keycloakDeployment;
@@ -217,17 +213,16 @@ public class KeycloakAccess {
 	}
 
 	private String getAuthToken() {
-		synchronized (LOCK) {
-			if ( token == null || System.currentTimeMillis() > tokenExpiration ) {
+		String token = cache.getSystemToken();
+		if (token == null) {
 				Configuration configuration = new Configuration( keycloakDeployment.getAuthServerBaseUrl(), keycloakDeployment.getRealm(), keycloakDeployment.getResourceName(), keycloakDeployment.getResourceCredentials(), keycloakDeployment.getClient() );
 				AuthzClient authzClient = AuthzClient.create( configuration );
 				AccessTokenResponse accessTokenResponse = authzClient.obtainAccessToken();
+				token = accessTokenResponse.getToken();
 				LOGGER.finest( "Token expires in: " + accessTokenResponse.getExpiresIn() );
-				this.tokenExpiration = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis( accessTokenResponse.getExpiresIn() - 500);
-				this.token = accessTokenResponse.getToken();
-			}
-			return this.token;
+				cache.setSystemToken( token, accessTokenResponse.getExpiresIn() );
 		}
+		return token;
 	}
 
 	private String[] getRolesFromJson( String json ) throws JsonProcessingException {
