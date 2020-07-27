@@ -50,7 +50,7 @@ public class KeycloakAccess {
 	public UserDetails loadUserByUsername( String username ) throws UsernameNotFoundException, DataAccessException {
 		LOGGER.finer( "Requested User Details for: " + username );
 		try {
-			if (cache.isEnabled() && !cache.isInvalidUser( username )) {
+			if ( !cache.isEnabled() || ( cache.isEnabled() && !cache.isInvalidUser( username ) ) ) {
 				List<GrantedAuthority> authorities = getAuthorities( getRolesForUser( username, null ) );
 				return new KeycloakUserDetails( username, authorities.toArray( new GrantedAuthority[0] ) );
 			} else {
