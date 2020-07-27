@@ -111,7 +111,7 @@ public class KeycloakCache {
 
 	public String getSystemToken() {
 		synchronized (TOKEN_LOCK) {
-			if ( token != null || System.currentTimeMillis() < tokenExpiration ) {
+			if ( token != null && System.currentTimeMillis() < tokenExpiration ) {
 				return token;
 			}
 			return null;

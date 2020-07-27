@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.acegisecurity.AuthenticationException;
@@ -24,6 +23,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.util.EntityUtils;
 import org.keycloak.adapters.KeycloakDeployment;
 import org.keycloak.authorization.client.AuthzClient;
@@ -50,16 +50,21 @@ public class KeycloakAccess {
 	public UserDetails loadUserByUsername( String username ) throws UsernameNotFoundException, DataAccessException {
 		LOGGER.finer( "Requested User Details for: " + username );
 		try {
-			if (!cache.isInvalidUser( username )) {
+			if (cache.isEnabled() && !cache.isInvalidUser( username )) {
 				List<GrantedAuthority> authorities = getAuthorities( getRolesForUser( username, null ) );
 				return new KeycloakUserDetails( username, authorities.toArray( new GrantedAuthority[0] ) );
 			} else {
 				throw new DataRetrievalFailureException( "Unable to get user information from Keycloak for " + username );
 			}
 		} catch (UsernameNotFoundException e) {
-			cache.addInvalidUser( username );
+			if (cache.isEnabled()) {
+				cache.addInvalidUser( username );
+			}
 			LOGGER.log( Level.FINE, "Unable to find user in keycloak: " + username );
 			throw new DataRetrievalFailureException( "Unable to get user information from Keycloak for " + username, e );
+		} catch (DataRetrievalFailureException e) {
+			LOGGER.log( Level.FINE, "Invalid user found: " + username );
+			throw e;
 		} catch ( Exception e ) {
 			LOGGER.log( Level.FINE, "Unable to get user information from Keycloak for: " + username, e );
 			throw new DataRetrievalFailureException( "Unable to get user information from Keycloak for " + username, e );
@@ -136,19 +141,26 @@ public class KeycloakAccess {
 		HttpGet getUsersReq = new HttpGet( realmInfoUrl );
 		KeycloakAccess.addKeycloakClientCredentialsToRequest( getUsersReq, token );
 
-		HttpResponse usersResponse = keycloakDeployment.getClient().execute( getUsersReq );
-		int statusCode = usersResponse.getStatusLine().getStatusCode();
-		if ( statusCode != 200 ) {
-			LOGGER.fine( "Unable to get user from Keycloak (" + realmInfoUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
-			throw new DataRetrievalFailureException(
-				"Unable to get user from Keycloak (" + realmInfoUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+		String id = null;
+		HttpResponse usersResponse = null;
+		try {
+			usersResponse = keycloakDeployment.getClient().execute( getUsersReq );
+			int statusCode = usersResponse.getStatusLine().getStatusCode();
+			if ( statusCode != 200 ) {
+				LOGGER.fine( "Unable to get user from Keycloak (" + realmInfoUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+				throw new DataRetrievalFailureException(
+					"Unable to get user from Keycloak (" + realmInfoUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+			}
+
+			HttpEntity httpEntity = usersResponse.getEntity();
+			String userOutput = EntityUtils.toString( httpEntity );
+			LOGGER.finest( "User Info output: " + userOutput );
+			id = getIdFromJson( userOutput );
+		} finally {
+			getUsersReq.releaseConnection();
+			HttpClientUtils.closeQuietly( usersResponse );
 		}
 
-		HttpEntity httpEntity = usersResponse.getEntity();
-		String userOutput = EntityUtils.toString( httpEntity );
-		LOGGER.finest( "User Info output: " + userOutput );
-
-		String id = getIdFromJson( userOutput );
 		if ( id == null ) {
 			throw new UsernameNotFoundException( "Unable to find username: " + username );
 		}
@@ -159,23 +171,29 @@ public class KeycloakAccess {
 
 		String roleUrl = usersBaseUrl + "/" + encodedId + "/role-mappings";
 		HttpGet roleMappingReq = new HttpGet( roleUrl );
-		KeycloakAccess.addKeycloakClientCredentialsToRequest( roleMappingReq, token );
-		HttpResponse roleMappingResponse = keycloakDeployment.getClient().execute( roleMappingReq );
-		statusCode = roleMappingResponse.getStatusLine().getStatusCode();
-		if ( statusCode != 200 ) {
-			LOGGER.warning( "Unable to get role-mapping from Keycloak (" + roleUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
-			throw new DataRetrievalFailureException(
-				"Unable to get role-mapping from Keycloak (" + roleUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
-		}
-		httpEntity = roleMappingResponse.getEntity();
-		String roleMappingOutput = EntityUtils.toString( httpEntity );
-		LOGGER.finest( "Role Mapping output: " + roleMappingOutput );
+		HttpResponse roleMappingResponse = null;
+		try {
+			KeycloakAccess.addKeycloakClientCredentialsToRequest( roleMappingReq, token );
+			roleMappingResponse = keycloakDeployment.getClient().execute( roleMappingReq );
+			int statusCode = roleMappingResponse.getStatusLine().getStatusCode();
+			if ( statusCode != 200 ) {
+				LOGGER.warning( "Unable to get role-mapping from Keycloak (" + roleUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+				throw new DataRetrievalFailureException(
+					"Unable to get role-mapping from Keycloak (" + roleUrl + "), status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+			}
+			HttpEntity httpEntity = roleMappingResponse.getEntity();
+			String roleMappingOutput = EntityUtils.toString( httpEntity );
+			LOGGER.finest( "Role Mapping output: " + roleMappingOutput );
 
-		String[] roles = getRolesFromJson( roleMappingOutput );
-		if (cache.isEnabled()) {
-			cache.setRolesForUser(username, roles);
+			String[] roles = getRolesFromJson( roleMappingOutput );
+			if ( cache.isEnabled() ) {
+				cache.setRolesForUser( username, roles );
+			}
+			return roles;
+		} finally {
+			roleMappingReq.releaseConnection();
+			HttpClientUtils.closeQuietly( roleMappingResponse );
 		}
- 		return roles;
 	}
 
 	private Collection<String> getRoles() throws IOException {
@@ -193,23 +211,28 @@ public class KeycloakAccess {
 		HttpGet rolesReq = new HttpGet( rolesUrl );
 		KeycloakAccess.addKeycloakClientCredentialsToRequest( rolesReq, token );
 
-		HttpResponse usersResponse = keycloakDeployment.getClient().execute( rolesReq );
-		int statusCode = usersResponse.getStatusLine().getStatusCode();
-		if ( statusCode != 200 ) {
-			LOGGER.info( "Unable to get roles from Keycloak, status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
-			throw new DataRetrievalFailureException(
-				"Unable to get roles from Keycloak, status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
-		}
+		HttpResponse usersResponse = null;
+		try {
+			usersResponse = keycloakDeployment.getClient().execute( rolesReq );
+			int statusCode = usersResponse.getStatusLine().getStatusCode();
+			if ( statusCode != 200 ) {
+				LOGGER.info( "Unable to get roles from Keycloak, status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+				throw new DataRetrievalFailureException( "Unable to get roles from Keycloak, status: " + statusCode + " : " + usersResponse.getStatusLine().getReasonPhrase() );
+			}
 
-		HttpEntity httpEntity = usersResponse.getEntity();
-		String roleOutput = EntityUtils.toString( httpEntity );
-		LOGGER.finest( "Roles output: " + roleOutput );
+			HttpEntity httpEntity = usersResponse.getEntity();
+			String roleOutput = EntityUtils.toString( httpEntity );
+			LOGGER.finest( "Roles output: " + roleOutput );
 
-		List<String> roles = getRoleInfoFromJson( roleOutput );
-		if (cache.isEnabled()) {
-			cache.setRoles(roles);
+			List<String> roles = getRoleInfoFromJson( roleOutput );
+			if ( cache.isEnabled() ) {
+				cache.setRoles( roles );
+			}
+			return roles;
+		} finally {
+			rolesReq.releaseConnection();
+			HttpClientUtils.closeQuietly( usersResponse );
 		}
-		return roles;
 	}
 
 	private String getAuthToken() {
