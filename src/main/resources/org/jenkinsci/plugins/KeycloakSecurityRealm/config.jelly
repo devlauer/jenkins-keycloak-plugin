@@ -3,19 +3,28 @@
 -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-	<f:section title="Global Keycloak Settings" name="keycloak" >
-		<f:entry title="Keycloak JSON"  field="keycloakJson" help="/plugin/keycloak/help/auth/keycloak-json-help.html">
-			<f:textarea />
+	<f:entry title="Keycloak JSON"  field="keycloakJson" help="/plugin/keycloak/help/auth/keycloak-json-help.html">
+		<f:textarea />
+	</f:entry>
+
+	<f:optionalBlock title="Validate Token on each request"  field="keycloakValidate" help="/plugin/keycloak/help/auth/keycloak-validate-help.html" inline="true">
+		<f:entry title="Keep login session open until access token times out?"  field="keycloakRespectAccessTokenTimeout" help="/plugin/keycloak/help/auth/keycloak-respectAccessTokenTimeout-help.html">
+			<f:checkbox/>
 		</f:entry>
-		
-		<f:optionalBlock title="Validate Token on each request"  field="keycloakValidate" help="/plugin/keycloak/help/auth/keycloak-validate-help.html">
-			<f:entry title="Keep login session open until access token times out?"  field="keycloakRespectAccessTokenTimeout" help="/plugin/keycloak/help/auth/keycloak-respectAccessTokenTimeout-help.html">
-				<f:checkbox/>
-			</f:entry>
-		</f:optionalBlock>
-        
-        <f:entry title="Use default IDP"  field="keycloakIdp" help="/plugin/keycloak/help/auth/keycloak-idp-help.html">
-            <f:textbox/>
-        </f:entry>
-	</f:section>
+	</f:optionalBlock>
+
+	<f:entry title="Use default IDP"  field="keycloakIdp" help="/plugin/keycloak/help/auth/keycloak-idp-help.html">
+		<f:textbox/>
+	</f:entry>
+	<f:advanced>
+		<f:entry field="cacheEnabled" title="Enable cache">
+			<f:checkbox/>
+		</f:entry>
+		<f:entry field="cacheSizeStr" title="Cache size">
+			<f:textbox default="10000" />
+		</f:entry>
+		<f:entry field="cacheTtlSecStr" title="Cache TTL (Seconds)">
+			<f:textbox default="300"/>
+		</f:entry>
+	</f:advanced>
 </j:jelly>
