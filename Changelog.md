@@ -7,6 +7,7 @@ Only noting significant user changes, not internal code cleanups and minor bug f
 - Several version upgrades (parent-pom, java version, jenkins minimum version, etc.) (Pull Request #7; thanks to halkeye)
 - Updated Keycloak client version to 9.0.3
 - Added maintenance hint in README
+- Updated jackson-core to 2.12.7
 
 ## [2.3.0] - 2019-01-20
 - [JENKINS-55669] Fix authentication loop  (Pull Request #5; thanks to Wadeck)
