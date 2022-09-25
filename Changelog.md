@@ -5,7 +5,7 @@ Only noting significant user changes, not internal code cleanups and minor bug f
 ## [Unreleased]
 - Added wiki documentation to project (Pull Request #6; thanks to halkeye)
 - Several version upgrades (parent-pom, java version, jenkins minimum version, etc.) (Pull Request #7; thanks to halkeye)
-- Updated Keycloak client version to 9.0.3
+- Updated Keycloak version to 19.0.2
 - Added maintenance hint in README
 - Updated jackson-core to 2.12.7
 - Updated mailer to 391.ve4a_38c1b_cf4b_
