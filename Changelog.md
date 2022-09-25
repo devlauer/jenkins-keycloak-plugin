@@ -8,6 +8,7 @@ Only noting significant user changes, not internal code cleanups and minor bug f
 - Updated Keycloak client version to 9.0.3
 - Added maintenance hint in README
 - Updated jackson-core to 2.12.7
+- Updated mailer to 391.ve4a_38c1b_cf4b_
 
 ## [2.3.0] - 2019-01-20
 - [JENKINS-55669] Fix authentication loop  (Pull Request #5; thanks to Wadeck)
